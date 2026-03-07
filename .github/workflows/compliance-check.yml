@@ -1,0 +1,34 @@
+name: Compliance Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  compliance:
+    name: Compliance Checklist Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify PR template checklist
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+
+            // Count unchecked compliance items (lines with "- [ ]")
+            const unchecked = (body.match(/- \[ \]/g) || []).length;
+            const checked   = (body.match(/- \[x\]/gi) || []).length;
+
+            if (unchecked > 0) {
+              core.setFailed(
+                `Compliance checklist incomplete: ${unchecked} item(s) unchecked. ` +
+                `All compliance items must be checked before merge.`
+              );
+            } else if (checked === 0) {
+              core.setFailed(
+                'PR body appears to be missing the compliance checklist. ' +
+                'Use the Pull Request template.'
+              );
+            } else {
+              console.log(`Compliance checklist complete: ${checked} items verified.`);
+            }

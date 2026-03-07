@@ -1,0 +1,72 @@
+name: Work Package
+description: Orchestrator task decomposition — scoped unit of work for an agent
+title: "[WP] "
+labels: ["work-package"]
+body:
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Assigned Agent
+      options:
+        - Surface
+        - Algorithm
+        - API/Data
+        - Compliance
+        - Orchestrator
+    validations:
+      required: true
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Phase
+      options:
+        - "Phase 1 — Foundation"
+        - "Phase 2 — Satisfaction Engine"
+        - "Phase 3 — Scale"
+    validations:
+      required: true
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: What does this work package deliver? One clear outcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context Documents
+      description: Which project documents are in scope for this work package?
+      placeholder: |
+        e.g.
+        - DESIGN_BIBLE.md §3.2 (Deck Card)
+        - RANKING_SPEC.md §5.1 (Catch Up)
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: In Scope
+      description: Explicit list of what this agent should produce.
+
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of Scope
+      description: Explicit boundaries — what this agent should NOT touch.
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Other work packages or contracts that must exist before this starts.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know this is done?

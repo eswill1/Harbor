@@ -1,0 +1,25 @@
+# Harbor CODEOWNERS
+# Maps directory ownership to agent domains.
+# Updated as the directory structure is established in Phase 1.
+# All paths require Orchestrator review before merge to main.
+
+# ── Project documents (Orchestrator owns) ─────────────────────
+*.md                          @eswill1
+.github/                      @eswill1
+
+# ── Surface Agent ─────────────────────────────────────────────
+# src/mobile/                 @eswill1   # React Native — uncomment when created
+# src/web/                    @eswill1   # Next.js — uncomment when created
+# src/design-tokens/          @eswill1
+
+# ── API/Data Agent ────────────────────────────────────────────
+# src/api/                    @eswill1   # Fastify services
+# src/db/                     @eswill1   # Migrations, schema
+# src/jobs/                   @eswill1   # BullMQ workers
+
+# ── Algorithm Agent ───────────────────────────────────────────
+# src/ml/                     @eswill1   # Models, training
+# src/ranking/                @eswill1   # Deck engine, scoring
+
+# ── Compliance (reviews everything) ───────────────────────────
+# All files implicitly require compliance review via PR template checklist.

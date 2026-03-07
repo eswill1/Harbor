@@ -1,0 +1,60 @@
+name: Ranking RFC
+description: Required for any material change to ranking objectives, signals, caps, or surfaces (Constitution §6)
+title: "[RFC] "
+labels: ["ranking-rfc", "needs-compliance-review"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What is changing
+      description: Specific change to ranking objective, signal, cap, or surface.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: Rationale for the change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Expected Tradeoffs
+      description: What might get worse? What are the risks?
+    validations:
+      required: true
+
+  - type: textarea
+    id: evaluation
+    attributes:
+      label: Evaluation Plan
+      description: How will this be measured? What experiment design?
+      placeholder: |
+        - Minimum runtime: 7 days
+        - Sample size: (power analysis result)
+        - Primary metric: SSR
+        - Constraint metrics: RR, AEI, Dogpile incidents
+        - Rollback trigger: RR +15% relative sustained 2h
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: gates
+    attributes:
+      label: Satisfaction Gate (must pass before global ship)
+      options:
+        - label: SSR non-decrease ≥ -2% relative
+        - label: RR non-increase ≥ +5% relative
+        - label: AEI high-band non-increase ≥ +5% relative
+        - label: Dogpile incidents non-worsening
+        - label: Notice coverage non-decrease ≥ -2pp
+        - label: Rollback config versioned
+
+  - type: input
+    id: pr
+    attributes:
+      label: Implementation PR
+      description: Link to the PR once implementation is ready.

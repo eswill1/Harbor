@@ -1,0 +1,36 @@
+name: Bug Report
+description: Something isn't working as specified
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Domain
+      options:
+        - Surface (UI/UX)
+        - Algorithm (Deck/Ranking)
+        - API/Data
+        - Compliance Violation
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What's broken? What did you expect vs. what happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: spec_ref
+    attributes:
+      label: Spec Reference
+      description: Which document and section defines the correct behavior?
+      placeholder: e.g. RANKING_SPEC.md §3.5 — red lines assert deck.size <= 20
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
