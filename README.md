@@ -26,6 +26,11 @@ Harbor is a social network that treats your attention as something sacred, not s
 |---|---|
 | [DESIGN_BIBLE.md](./DESIGN_BIBLE.md) | Visual language, components, UX patterns, anti-patterns |
 | [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) | Tech stack, architecture, algorithm design, phase roadmap |
+| [PRODUCT_STRATEGY.md](./PRODUCT_STRATEGY.md) | Positioning, wedge products, viability argument |
+| [ANTI_DRIFT_CONSTITUTION.md](./ANTI_DRIFT_CONSTITUTION.md) | Non-negotiable rules against engagement-at-all-costs drift |
+| [METRICS_STANDARD.md](./METRICS_STANDARD.md) | How we measure success and detect drift |
+| [RANKING_SPEC.md](./RANKING_SPEC.md) | How the algorithm works across all 7 intents |
+| [AGENT_DEVELOPMENT_STRATEGY.md](./AGENT_DEVELOPMENT_STRATEGY.md) | Multi-agent build strategy |
 
 ## The Bet
 
