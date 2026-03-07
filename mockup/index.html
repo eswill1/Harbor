@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Harbor — UI Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ─── DESIGN TOKENS ─────────────────────────────────────────── */
+:root {
+  --harbor-deep:   #1B2A3B;
+  --harbor-slate:  #2E4057;
+  --harbor-water:  #4A7FA5;
+  --harbor-seafoam:#72B8A0;
+  --harbor-sand:   #F0E6D3;
+  --harbor-mist:   #F7F4EF;
+  --harbor-fog:    #E8E2D9;
+
+  --bg-base:       #F7F4EF;
+  --bg-surface:    #FFFFFF;
+  --bg-elevated:   #F0E6D3;
+  --text-primary:  #1B2A3B;
+  --text-secondary:#5A6A7A;
+  --text-muted:    #9AABB8;
+  --accent-primary:#4A7FA5;
+  --accent-success:#72B8A0;
+  --accent-caution:#C4935A;
+  --accent-civic:  #7B68A8;
+  --border:        #E8E2D9;
+  --border-strong: #C8BFB4;
+
+  --radius-sm:  6px;
+  --radius-md:  12px;
+  --radius-lg:  18px;
+  --radius-xl:  24px;
+  --radius-full:999px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.14);
+
+  --duration-fast:   150ms;
+  --duration-normal: 250ms;
+  --duration-slow:   400ms;
+  --ease-out: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-in:  cubic-bezier(0.4, 0.0, 1, 1);
+}
+
+[data-theme="dark"] {
+  --bg-base:       #111820;
+  --bg-surface:    #1B2A3B;
+  --bg-elevated:   #2E4057;
+  --text-primary:  #EEE8DF;
+  --text-secondary:#8FA3B1;
+  --text-muted:    #4A6070;
+  --accent-primary:#6B9FBF;
+  --border:        #2A3D50;
+  --border-strong: #3A5060;
+}
+
+/* ─── RESET & BASE ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  transition: background var(--duration-normal), color var(--duration-normal);
+}
+
+/* ─── DEMO SHELL ────────────────────────────────────────────── */
+.demo-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 24px 16px 48px;
+}
+
+.demo-header {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.demo-wordmark {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--harbor-water);
+  letter-spacing: -0.5px;
+}
+.demo-wordmark span { color: var(--text-secondary); font-weight: 400; font-size: 13px; margin-left: 8px; }
+
+.demo-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-icon {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+.btn-icon:hover { background: var(--bg-elevated); color: var(--text-primary); }
+
+/* ─── SCREEN CONTAINER (phone frame) ───────────────────────── */
+.phone-frame {
+  width: 100%;
+  max-width: 390px;
+  min-height: 720px;
+  background: var(--bg-base);
+  border-radius: 32px;
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── SCREENS ───────────────────────────────────────────────── */
+.screen {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  animation: screenIn var(--duration-normal) var(--ease-out);
+}
+.screen.active { display: flex; }
+
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── SCREEN: INTENT SELECTOR ──────────────────────────────── */
+#screen-intent {
+  background: var(--bg-base);
+  padding: 32px 24px 24px;
+}
+
+.intent-greeting {
+  margin-bottom: 28px;
+}
+.intent-greeting .time {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+.intent-greeting h1 {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+.intent-greeting h1 em {
+  font-style: normal;
+  color: var(--accent-primary);
+}
+.intent-greeting p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.intent-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.intent-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+.intent-card:hover {
+  border-color: var(--accent-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.intent-card.selected {
+  border-color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 8%, var(--bg-surface));
+}
+.intent-card.selected .intent-icon {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.intent-icon {
+  width: 42px; height: 42px;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  transition: all var(--duration-fast);
+}
+
+.intent-text { flex: 1; }
+.intent-text strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.intent-text span {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.intent-arrow {
+  color: var(--text-muted);
+  font-size: 18px;
+  transition: transform var(--duration-fast), color var(--duration-fast);
+}
+.intent-card:hover .intent-arrow,
+.intent-card.selected .intent-arrow {
+  color: var(--accent-primary);
+  transform: translateX(3px);
+}
+
+.intent-cta {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: 16px;
+  font-weight: 600;
+  width: 100%;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity var(--duration-fast), transform var(--duration-fast);
+  pointer-events: none;
+}
+.intent-cta.ready {
+  opacity: 1;
+  pointer-events: auto;
+}
+.intent-cta.ready:hover { transform: translateY(-1px); }
+.intent-cta.ready:active { transform: translateY(0); }
+
+/* ─── SCREEN: DECK VIEW ────────────────────────────────────── */
+#screen-deck {
+  display: none;
+  flex-direction: column;
+}
+#screen-deck.active { display: flex; }
+
+.deck-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.deck-intent-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: color-mix(in srgb, var(--accent-primary) 12%, var(--bg-surface));
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.deck-counter {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-back {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+/* Progress bar */
+.deck-progress-bar {
+  height: 3px;
+  background: var(--border);
+  position: relative;
+}
+.deck-progress-fill {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: 0 2px 2px 0;
+  transition: width var(--duration-slow) var(--ease-out);
+}
+
+/* Card stack */
+.deck-cards {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.deck-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  animation: cardIn var(--duration-slow) var(--ease-out);
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.deck-card.throttled {
+  border-left: 3px solid var(--accent-caution);
+}
+.deck-card.serendipity {
+  border-left: 3px solid var(--accent-primary);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 10px;
+}
+
+.card-avatar {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--bg-elevated);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.card-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.card-meta { flex: 1; min-width: 0; }
+.card-meta .name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card-meta .sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-meta .shelf-tag {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.card-menu {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.card-body { padding: 0 16px 14px; }
+.card-body p {
+  font-size: 15px;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.card-image {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: var(--bg-elevated);
+  margin-bottom: 14px;
+  overflow: hidden;
+  position: relative;
+}
+.card-image img { width: 100%; height: 100%; object-fit: cover; }
+.card-image .img-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+  color: var(--text-muted);
+}
+
+.throttle-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 12px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--accent-caution) 10%, var(--bg-surface));
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  color: var(--accent-caution);
+  font-weight: 500;
+}
+
+.serendipity-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 12px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--accent-primary) 8%, var(--bg-surface));
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--border);
+  gap: 4px;
+}
+
+.card-action {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  white-space: nowrap;
+}
+.card-action:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.card-action.primary { color: var(--accent-primary); }
+.card-action.primary:hover { background: color-mix(in srgb, var(--accent-primary) 10%, transparent); }
+.card-action .icon { font-size: 16px; }
+
+.card-why {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: none;
+  transition: all var(--duration-fast);
+  white-space: nowrap;
+}
+.card-why:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
+
+/* Deck nav buttons */
+.deck-nav {
+  padding: 12px 16px 20px;
+  display: flex;
+  gap: 10px;
+}
+.btn-secondary {
+  flex: 1;
+  padding: 13px;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+.btn-secondary:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+.btn-primary {
+  flex: 2;
+  padding: 13px;
+  border-radius: var(--radius-lg);
+  border: none;
+  background: var(--accent-primary);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+/* ─── WHY THIS PANEL ────────────────────────────────────────── */
+.panel-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  align-items: flex-end;
+}
+.panel-overlay.open { display: flex; animation: overlayIn var(--duration-fast); }
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+
+.panel-sheet {
+  width: 100%;
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 20px 24px 32px;
+  animation: sheetUp var(--duration-normal) var(--ease-out);
+}
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.panel-handle {
+  width: 36px; height: 4px;
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+  margin: 0 auto 20px;
+}
+
+.panel-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.panel-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.signal-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.signal-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.signal-dot {
+  width: 7px; height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--accent-primary);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.panel-actions { display: flex; flex-direction: column; gap: 8px; }
+.panel-action-btn {
+  padding: 11px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--duration-fast);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-action-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+
+/* ─── SCREEN: DECK COMPLETE ────────────────────────────────── */
+#screen-complete {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 28px;
+  text-align: center;
+}
+#screen-complete.active { display: flex; }
+
+.complete-anchor {
+  font-size: 56px;
+  margin-bottom: 20px;
+  animation: anchorDrop var(--duration-slow) var(--ease-out) both;
+}
+@keyframes anchorDrop {
+  from { transform: translateY(-20px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.complete-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.complete-subtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+.checkin-label {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.checkin-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+.checkin-btn {
+  padding: 14px 20px;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.checkin-btn:hover { border-color: var(--accent-primary); background: color-mix(in srgb, var(--accent-primary) 5%, var(--bg-surface)); }
+.checkin-btn.selected { border-color: var(--accent-primary); background: color-mix(in srgb, var(--accent-primary) 10%, var(--bg-surface)); color: var(--accent-primary); font-weight: 600; }
+.checkin-btn.selected .checkin-icon { background: var(--accent-primary); color: white; }
+
+.checkin-icon {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--bg-elevated);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: all var(--duration-fast);
+}
+
+.mood-section {
+  margin-top: 4px;
+  margin-bottom: 20px;
+  width: 100%;
+}
+.mood-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  font-style: italic;
+}
+.mood-options {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.mood-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--bg-surface);
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.mood-btn:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.mood-btn.selected { border-color: var(--accent-seafoam, #72B8A0); background: color-mix(in srgb, #72B8A0 10%, var(--bg-surface)); }
+.mood-btn span:first-child { font-size: 20px; }
+
+.complete-more {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  margin-top: 4px;
+}
+.complete-more-btn {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.complete-more-btn:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
+
+.skip-link {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  background: none;
+  border: none;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+.skip-link:hover { color: var(--text-secondary); }
+
+/* ─── SCREEN: SHELVES ───────────────────────────────────────── */
+#screen-shelves {
+  display: none;
+  flex-direction: column;
+}
+#screen-shelves.active { display: flex; }
+
+.shelves-topbar {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.shelves-topbar h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.shelves-topbar p {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.shelves-search {
+  margin: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.shelves-search span { flex: 1; }
+
+.shelves-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+}
+
+.shelf-group { margin-bottom: 8px; }
+
+.shelf-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--duration-fast);
+  border: 1px solid transparent;
+}
+.shelf-row:hover { background: var(--bg-surface); border-color: var(--border); }
+
+.shelf-icon {
+  width: 40px; height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.shelf-info { flex: 1; min-width: 0; }
+.shelf-info .shelf-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.shelf-info .shelf-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.shelf-sub-list { margin-left: 52px; }
+.shelf-sub-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--duration-fast);
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.shelf-sub-row:hover { background: var(--bg-surface); color: var(--text-primary); }
+.shelf-sub-row .count {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.shelf-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px dashed var(--border-strong);
+  background: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 8px;
+  transition: all var(--duration-fast);
+}
+.shelf-new-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+
+/* ─── BOTTOM NAV ────────────────────────────────────────────── */
+.bottom-nav {
+  display: flex;
+  border-top: 1px solid var(--border);
+  background: var(--bg-surface);
+  padding: 8px 0 16px;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  transition: color var(--duration-fast);
+}
+.nav-item:hover { color: var(--text-secondary); }
+.nav-item.active { color: var(--accent-primary); }
+
+.nav-icon {
+  font-size: 22px;
+  line-height: 1;
+  position: relative;
+}
+.nav-badge {
+  position: absolute;
+  top: -3px; right: -6px;
+  width: 14px; height: 14px;
+  background: var(--accent-primary);
+  border-radius: var(--radius-full);
+  font-size: 9px;
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700;
+}
+
+/* ─── SCREEN SWITCHER TABS ──────────────────────────────────── */
+.demo-nav {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  background: var(--bg-surface);
+  padding: 4px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+.demo-tab {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+.demo-tab.active {
+  background: var(--accent-primary);
+  color: white;
+}
+
+/* ─── SOURCE BUCKET PILL ───────────────────────────────────── */
+.source-bucket {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+.source-bucket.discovery {
+  background: color-mix(in srgb, var(--accent-primary) 10%, var(--bg-surface));
+  color: var(--accent-primary);
+}
+
+/* ─── BASELINE VIEW SWITCHER ────────────────────────────────── */
+.deck-view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+  justify-content: center;
+}
+.view-toggle-group {
+  display: flex;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-full);
+  padding: 2px;
+  gap: 2px;
+}
+.view-toggle-btn {
+  padding: 5px 14px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  white-space: nowrap;
+}
+.view-toggle-btn.active {
+  background: var(--bg-surface);
+  color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ─── CIVIC CONTENT TYPE LABEL ──────────────────────────────── */
+.civic-type-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--accent-civic) 12%, var(--bg-surface));
+  color: var(--accent-civic);
+  margin-top: 2px;
+}
+
+/* ─── CIVIC LANE ────────────────────────────────────────────── */
+.civic-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  background: color-mix(in srgb, var(--accent-civic) 12%, var(--bg-surface));
+  color: var(--accent-civic);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid color-mix(in srgb, var(--accent-civic) 25%, transparent);
+}
+
+/* ─── SAVED ANIMATION ───────────────────────────────────────── */
+@keyframes savedPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.3); }
+  70%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.saved-anim { animation: savedPop 400ms var(--ease-out); }
+
+/* ─── RESPONSIVE ────────────────────────────────────────────── */
+@media (max-width: 440px) {
+  .demo-shell { padding: 16px 0 0; }
+  .demo-header { padding: 0 16px; }
+  .demo-nav { margin: 0 12px 12px; }
+  .phone-frame { border-radius: 0; border: none; box-shadow: none; min-height: calc(100vh - 140px); }
+}
+</style>
+</head>
+<body>
+
+<div class="demo-shell">
+  <!-- Demo header -->
+  <div class="demo-header">
+    <div class="demo-wordmark">Harbor <span>UI Mockup</span></div>
+    <div class="demo-controls">
+      <button class="btn-icon" id="theme-toggle" title="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+
+  <!-- Screen switcher -->
+  <div class="demo-nav">
+    <button class="demo-tab active" data-screen="intent">Intent</button>
+    <button class="demo-tab" data-screen="deck">Deck</button>
+    <button class="demo-tab" data-screen="complete">Done</button>
+    <button class="demo-tab" data-screen="shelves">Shelves</button>
+  </div>
+
+  <!-- Phone frame -->
+  <div class="phone-frame">
+
+    <!-- ══ SCREEN: INTENT SELECTOR ══════════════════════════════ -->
+    <div id="screen-intent" class="screen active">
+      <div class="intent-greeting">
+        <div class="time">Saturday morning</div>
+        <h1>What brings you<br>to <em>Harbor</em> today?</h1>
+        <p>Your session stays within whatever you choose.</p>
+      </div>
+
+      <div class="intent-grid">
+        <div class="intent-card" data-intent="catchup" onclick="selectIntent(this)">
+          <div class="intent-icon">⚓</div>
+          <div class="intent-text">
+            <strong>Catch Up</strong>
+            <span>Friends, updates, what you missed</span>
+          </div>
+          <div class="intent-arrow">›</div>
+        </div>
+
+        <div class="intent-card" data-intent="learn" onclick="selectIntent(this)">
+          <div class="intent-icon">📖</div>
+          <div class="intent-text">
+            <strong>Learn</strong>
+            <span>Guides, explainers, long reads</span>
+          </div>
+          <div class="intent-arrow">›</div>
+        </div>
+
+        <div class="intent-card" data-intent="connect" onclick="selectIntent(this)">
+          <div class="intent-icon">🤝</div>
+          <div class="intent-text">
+            <strong>Connect</strong>
+            <span>Communities, events, conversations</span>
+          </div>
+          <div class="intent-arrow">›</div>
+        </div>
+
+        <div class="intent-card" data-intent="create" onclick="selectIntent(this)">
+          <div class="intent-icon">✏️</div>
+          <div class="intent-text">
+            <strong>Create</strong>
+            <span>Collabs, prompts, get feedback</span>
+          </div>
+          <div class="intent-arrow">›</div>
+        </div>
+
+        <div class="intent-card" data-intent="delight" onclick="selectIntent(this)">
+          <div class="intent-icon">✨</div>
+          <div class="intent-text">
+            <strong>Delight</strong>
+            <span>Humor, art, something good</span>
+          </div>
+          <div class="intent-arrow">›</div>
+        </div>
+
+        <div class="intent-card" data-intent="explore" onclick="selectIntent(this)">
+          <div class="intent-icon">🧭</div>
+          <div class="intent-text">
+            <strong>Explore</strong>
+            <span>Find new creators and communities</span>
+          </div>
+          <div class="intent-arrow">›</div>
+        </div>
+
+        <div class="intent-card" data-intent="civic" onclick="selectIntent(this)" style="opacity:0.6;" title="Requires opt-in in Settings">
+          <div class="intent-icon">🏛️</div>
+          <div class="intent-text">
+            <strong>Civic</strong>
+            <span>News and civic discussion</span>
+            <span style="font-size:11px; color:var(--accent-civic); font-weight:600;">Opt-in · Enable in Settings</span>
+          </div>
+          <div class="intent-arrow">›</div>
+        </div>
+      </div>
+
+      <button class="intent-cta" id="intent-cta" onclick="goToDeck()">Start your deck →</button>
+    </div>
+
+    <!-- ══ SCREEN: DECK VIEW ═════════════════════════════════════ -->
+    <div id="screen-deck" class="screen">
+      <div class="deck-topbar">
+        <button class="deck-back" onclick="goToScreen('intent')">←</button>
+        <div class="deck-intent-pill" id="deck-intent-label">📖 Learn</div>
+        <div class="deck-counter" id="deck-counter">3 of 20</div>
+      </div>
+
+      <div class="deck-view-toggle">
+        <div class="view-toggle-group">
+          <button class="view-toggle-btn active" onclick="switchView(this, 'ranked')">Harbor Ranked</button>
+          <button class="view-toggle-btn" onclick="switchView(this, 'chrono')">Following only</button>
+        </div>
+      </div>
+
+      <div class="deck-progress-bar">
+        <div class="deck-progress-fill" id="deck-progress" style="width: 15%"></div>
+      </div>
+
+      <div class="deck-cards" id="deck-cards-container">
+
+        <!-- Card 1: Standard post -->
+        <div class="deck-card" id="card-1">
+          <div class="card-header">
+            <div class="card-avatar">🌿</div>
+            <div class="card-meta">
+              <div class="name">Maya Chen</div>
+              <div class="sub">
+                <span class="shelf-tag">Home Lab</span>
+                <span>2h ago</span>
+              </div>
+              <span class="source-bucket">From your shelves</span>
+            </div>
+            <button class="card-menu">···</button>
+          </div>
+          <div class="card-body">
+            <p>Just migrated my entire Proxmox cluster to a 10GbE backbone. The difference in VM migration time is absurd — what used to take 4 minutes now finishes in under 20 seconds. Thread on what I learned below.</p>
+          </div>
+          <div class="card-footer">
+            <button class="card-action primary" onclick="saveCard(this)">
+              <span class="icon">🔖</span> Save
+            </button>
+            <button class="card-action">
+              <span class="icon">💬</span> Reply
+            </button>
+            <button class="card-action">
+              <span class="icon">↗</span> Share
+            </button>
+            <button class="card-why" onclick="openWhyPanel()">Why this?</button>
+          </div>
+        </div>
+
+        <!-- Card 2: Serendipity -->
+        <div class="deck-card serendipity" style="margin-top: 12px;">
+          <div class="serendipity-notice">
+            🧭 Adjacent discovery — within your 15% discovery budget
+          </div>
+          <div class="card-header">
+            <div class="card-avatar">🔬</div>
+            <div class="card-meta">
+              <div class="name">The Packet Journal</div>
+              <div class="sub">
+                <span class="shelf-tag">New to you</span>
+                <span>1d ago</span>
+              </div>
+              <span class="source-bucket discovery">Adjacent to Networking shelf</span>
+            </div>
+            <button class="card-menu">···</button>
+          </div>
+          <div class="card-body">
+            <p>How eBPF is quietly rewriting the rules of Linux networking — and why your next homelab project probably should care. A deep dive with working examples.</p>
+          </div>
+          <div class="card-footer">
+            <button class="card-action primary" onclick="saveCard(this)">
+              <span class="icon">🔖</span> Save
+            </button>
+            <button class="card-action">
+              <span class="icon">💬</span> Reply
+            </button>
+            <button class="card-action">
+              <span class="icon">↗</span> Share
+            </button>
+            <button class="card-why" onclick="openWhyPanel()">Why this?</button>
+          </div>
+        </div>
+
+        <!-- Card 3: Throttled / heated -->
+        <div class="deck-card throttled" style="margin-top: 12px;">
+          <div class="throttle-notice">
+            🌊 Getting strong reactions — read before sharing
+          </div>
+          <div class="card-header">
+            <div class="card-avatar">📡</div>
+            <div class="card-meta">
+              <div class="name">Infrawatch</div>
+              <div class="sub">
+                <span class="shelf-tag">Tech News</span>
+                <span>3h ago</span>
+              </div>
+              <span class="source-bucket">From your shelves</span>
+            </div>
+            <button class="card-menu">···</button>
+          </div>
+          <div class="card-body">
+            <p>Major cloud provider quietly changed their egress pricing model. The change affects users running self-hosted backups — some are reporting 3× cost increases without prior notice.</p>
+          </div>
+          <div class="card-footer">
+            <button class="card-action primary" onclick="saveCard(this)">
+              <span class="icon">🔖</span> Save
+            </button>
+            <button class="card-action">
+              <span class="icon">💬</span> Reply
+            </button>
+            <button class="card-action" onclick="showShareFriction(this)">
+              <span class="icon">↗</span> Share
+            </button>
+            <button class="card-why" onclick="openWhyPanel()">Why this?</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="deck-nav">
+        <button class="btn-secondary" onclick="goToScreen('intent')">← Back</button>
+        <button class="btn-primary" onclick="goToScreen('complete')">Finish deck →</button>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN: DECK COMPLETE ═════════════════════════════════ -->
+    <div id="screen-complete" class="screen">
+      <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 32px 28px; text-align:center;">
+        <div class="complete-anchor">⚓</div>
+        <div class="complete-title">You're caught up.</div>
+        <div class="complete-subtitle">That was your 20-card Learn deck.<br>You saved 3 items.</div>
+
+        <div class="checkin-label">Did you get what you came for?</div>
+        <div class="checkin-options">
+          <button class="checkin-btn" onclick="selectCheckin(this)">
+            <div class="checkin-icon">✓</div>
+            Yes, I'm done
+          </button>
+          <button class="checkin-btn" onclick="selectCheckin(this)">
+            <div class="checkin-icon">≈</div>
+            Sort of
+          </button>
+          <button class="checkin-btn" onclick="selectCheckin(this)">
+            <div class="checkin-icon">✗</div>
+            Not really
+          </button>
+        </div>
+
+        <div class="mood-section">
+          <div class="mood-label">How do you feel? (optional)</div>
+          <div class="mood-options">
+            <button class="mood-btn" onclick="selectMood(this)">
+              <span>🙂</span><span>Better</span>
+            </button>
+            <button class="mood-btn" onclick="selectMood(this)">
+              <span>😐</span><span>Same</span>
+            </button>
+            <button class="mood-btn" onclick="selectMood(this)">
+              <span>😔</span><span>Worse</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="complete-more">
+          <button class="complete-more-btn" onclick="goToScreen('deck')">
+            📦 Load another deck
+          </button>
+          <button class="complete-more-btn" onclick="goToScreen('intent')">
+            🔄 Switch intent
+          </button>
+          <button class="complete-more-btn" onclick="goToScreen('shelves')">
+            📚 Go to Shelves
+          </button>
+        </div>
+
+        <button class="skip-link" onclick="goToScreen('intent')">Skip check-in →</button>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN: SHELVES ═══════════════════════════════════════ -->
+    <div id="screen-shelves" class="screen">
+      <div class="shelves-topbar">
+        <h2>Library</h2>
+        <p>Your shelves — organized your way</p>
+      </div>
+
+      <div class="shelves-search">
+        <span>🔍</span>
+        <span style="color: var(--text-muted);">Search your shelves…</span>
+      </div>
+
+      <div class="shelves-list">
+
+        <div class="shelf-group">
+          <div class="shelf-row">
+            <div class="shelf-icon">🖥️</div>
+            <div class="shelf-info">
+              <div class="shelf-name">Home Lab</div>
+              <div class="shelf-count">3 sub-shelves · 42 saved</div>
+            </div>
+            <span style="color:var(--text-muted); font-size:18px">›</span>
+          </div>
+          <div class="shelf-sub-list">
+            <div class="shelf-sub-row">Proxmox <span class="count">14</span></div>
+            <div class="shelf-sub-row">Networking <span class="count">19</span></div>
+            <div class="shelf-sub-row">Backups <span class="count">9</span></div>
+          </div>
+        </div>
+
+        <div class="shelf-group">
+          <div class="shelf-row">
+            <div class="shelf-icon">📷</div>
+            <div class="shelf-info">
+              <div class="shelf-name">Photography</div>
+              <div class="shelf-count">3 sub-shelves · 42 saved</div>
+            </div>
+            <span style="color:var(--text-muted); font-size:18px">›</span>
+          </div>
+          <div class="shelf-sub-list">
+            <div class="shelf-sub-row">Lighting <span class="count">23</span></div>
+            <div class="shelf-sub-row">Portraits <span class="count">11</span></div>
+            <div class="shelf-sub-row">Editing <span class="count">8</span></div>
+          </div>
+        </div>
+
+        <div class="shelf-group">
+          <div class="shelf-row">
+            <div class="shelf-icon">👨‍👩‍👦</div>
+            <div class="shelf-info">
+              <div class="shelf-name">Parenting</div>
+              <div class="shelf-count">1 sub-shelf · 9 saved</div>
+            </div>
+            <span style="color:var(--text-muted); font-size:18px">›</span>
+          </div>
+          <div class="shelf-sub-list">
+            <div class="shelf-sub-row">Meals <span class="count">9</span></div>
+          </div>
+        </div>
+
+        <div class="shelf-group">
+          <div class="shelf-row" style="opacity:0.6">
+            <div class="shelf-icon">💼</div>
+            <div class="shelf-info">
+              <div class="shelf-name">Career</div>
+              <div class="shelf-count">6 saved</div>
+            </div>
+            <span style="color:var(--text-muted); font-size:18px">›</span>
+          </div>
+        </div>
+
+        <button class="shelf-new-btn">
+          <span style="font-size:18px">＋</span> New shelf
+        </button>
+      </div>
+
+      <!-- Bottom nav -->
+      <div class="bottom-nav">
+        <button class="nav-item" onclick="goToScreen('intent')">
+          <div class="nav-icon">🏠</div>
+          <span>Home</span>
+        </button>
+        <button class="nav-item active" onclick="goToScreen('shelves')">
+          <div class="nav-icon">📚</div>
+          <span>Library</span>
+        </button>
+        <button class="nav-item" onclick="goToScreen('deck')">
+          <div class="nav-icon" style="position:relative">🧭
+            <span class="nav-badge">2</span>
+          </div>
+          <span>Explore</span>
+        </button>
+        <button class="nav-item">
+          <div class="nav-icon">👤</div>
+          <span>Profile</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ WHY THIS? PANEL (overlay) ═════════════════════════════ -->
+    <div class="panel-overlay" id="why-panel" onclick="closeWhyPanel(event)">
+      <div class="panel-sheet">
+        <div class="panel-handle"></div>
+        <div class="panel-title">Why you're seeing this</div>
+        <div class="panel-subtitle">"How eBPF is rewriting Linux networking…"</div>
+        <div class="signal-list">
+          <div class="signal-item">
+            <div class="signal-dot" style="background:var(--accent-primary)"></div>
+            <span><strong>Adjacent discovery</strong> — within your 15% discovery budget</span>
+          </div>
+          <div class="signal-item">
+            <div class="signal-dot"></div>
+            <span>Adjacent to your <strong>Networking</strong> shelf (19 posts saved)</span>
+          </div>
+          <div class="signal-item">
+            <div class="signal-dot"></div>
+            <span>2 people you follow rated this <strong>helpful</strong></span>
+          </div>
+          <div class="signal-item">
+            <div class="signal-dot" style="background:var(--text-muted)"></div>
+            <span style="color:var(--text-muted); font-size:13px;">Arousal score: Low (0.12) — no throttle applied</span>
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button class="panel-action-btn">✏️ Edit these signals</button>
+          <button class="panel-action-btn" onclick="closeWhyPanel()">👎 See less like this</button>
+          <button class="panel-action-btn" onclick="closeWhyPanel()">✓ Done</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /phone-frame -->
+</div><!-- /demo-shell -->
+
+<script>
+// ─── STATE ────────────────────────────────────────────────────
+let selectedIntent = null;
+const intentLabels = {
+  catchup: '⚓ Catch Up',
+  learn:   '📖 Learn',
+  connect: '🤝 Connect',
+  create:  '✏️ Create',
+  delight: '✨ Delight',
+  explore: '🧭 Explore',
+  civic:   '🏛️ Civic',
+};
+
+// ─── SCREEN NAVIGATION ───────────────────────────────────────
+function goToScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
+
+  const target = document.getElementById('screen-' + id);
+  if (target) target.classList.add('active');
+
+  const tab = document.querySelector(`[data-screen="${id}"]`);
+  if (tab) tab.classList.add('active');
+}
+
+document.querySelectorAll('.demo-tab').forEach(tab => {
+  tab.addEventListener('click', () => goToScreen(tab.dataset.screen));
+});
+
+// ─── INTENT SELECTION ────────────────────────────────────────
+function selectIntent(card) {
+  document.querySelectorAll('.intent-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  selectedIntent = card.dataset.intent;
+
+  const cta = document.getElementById('intent-cta');
+  cta.classList.add('ready');
+  cta.textContent = `Start ${getIntentName(selectedIntent)} deck →`;
+}
+
+function getIntentName(intent) {
+  const names = { catchup:'Catch Up', learn:'Learn', connect:'Connect', create:'Create', delight:'Delight' };
+  return names[intent] || '';
+}
+
+function goToDeck() {
+  if (!selectedIntent) return;
+  const label = document.getElementById('deck-intent-label');
+  if (label) label.textContent = intentLabels[selectedIntent] || '📖 Learn';
+  goToScreen('deck');
+}
+
+// ─── SAVE CARD ───────────────────────────────────────────────
+function saveCard(btn) {
+  const icon = btn.querySelector('.icon');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<span class="icon">✓</span> Saved!';
+  btn.style.color = 'var(--accent-success)';
+  btn.classList.add('saved-anim');
+  setTimeout(() => {
+    btn.innerHTML = originalText;
+    btn.style.color = '';
+    btn.classList.remove('saved-anim');
+  }, 1800);
+}
+
+// ─── SHARE FRICTION ──────────────────────────────────────────
+function showShareFriction(btn) {
+  btn.textContent = 'Wait 3s…';
+  btn.style.color = 'var(--accent-caution)';
+  btn.disabled = true;
+  let n = 3;
+  const t = setInterval(() => {
+    n--;
+    if (n <= 0) {
+      clearInterval(t);
+      btn.innerHTML = '<span class="icon">↗</span> Share';
+      btn.style.color = '';
+      btn.disabled = false;
+    } else {
+      btn.textContent = `Wait ${n}s…`;
+    }
+  }, 1000);
+}
+
+// ─── WHY THIS PANEL ──────────────────────────────────────────
+function openWhyPanel() {
+  document.getElementById('why-panel').classList.add('open');
+}
+function closeWhyPanel(e) {
+  if (!e || e.target === document.getElementById('why-panel')) {
+    document.getElementById('why-panel').classList.remove('open');
+  }
+}
+
+// ─── CHECK-IN ────────────────────────────────────────────────
+function selectCheckin(btn) {
+  document.querySelectorAll('.checkin-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+function selectMood(btn) {
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+// ─── BASELINE VIEW SWITCHER ──────────────────────────────────
+function switchView(btn, mode) {
+  document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const counter = document.getElementById('deck-counter');
+  if (mode === 'chrono') {
+    counter.textContent = 'Following · newest first';
+    counter.style.color = 'var(--text-secondary)';
+  } else {
+    counter.textContent = '3 of 20';
+    counter.style.color = '';
+  }
+}
+
+// ─── DARK MODE ───────────────────────────────────────────────
+const themeToggle = document.getElementById('theme-toggle');
+themeToggle.addEventListener('click', () => {
+  const html = document.documentElement;
+  const isDark = html.dataset.theme === 'dark';
+  html.dataset.theme = isDark ? 'light' : 'dark';
+  themeToggle.textContent = isDark ? '🌙' : '☀️';
+});
+
+// ─── DECK PROGRESS SIMULATION ────────────────────────────────
+// Clicking "next" on deck advances progress
+let deckPos = 3;
+document.querySelector('.btn-primary')?.addEventListener('click', () => {
+  deckPos = Math.min(20, deckPos + 5);
+  const fill = document.getElementById('deck-progress');
+  const counter = document.getElementById('deck-counter');
+  if (fill) fill.style.width = (deckPos / 20 * 100) + '%';
+  if (counter) counter.textContent = deckPos + ' of 20';
+});
+</script>
+</body>
+</html>
