@@ -517,17 +517,17 @@ In Civic Lane decks:
 **Goal: A working, honest social network with the core loop — and the constitutional minimums in place from day one.**
 
 #### Deliverables:
-- [ ] Auth system (email + Apple/Google OAuth)
-- [ ] User profiles (simple)
-- [ ] Content creation: text posts, image posts, link sharing
-- [ ] Intent selector (all 7 modes including Explore; Civic gated by opt-in)
-- [ ] Deck engine v1 (chronological + basic shelf affinity, no ML yet)
-- [ ] Bucket plan v1 (rule-based, not ML — but buckets exist from day one)
-- [ ] 20-card finite deck with completion screen
-- [ ] Baseline view switcher (Following-only chronological) — constitutional requirement, ships in P1
-- [ ] Check-in system: satisfaction prompt (20–40% cohort sampling)
-- [ ] Shelves: create, save, organize
-- [ ] Follow system + community join
+- [x] Auth system — email/password registration + login, JWT access + refresh tokens _(OAuth: Phase 2)_
+- [x] User profiles (simple)
+- [x] Content creation: text posts _(image posts, link sharing: Phase 2)_
+- [x] Intent selector (all 7 modes including Explore; Civic gated by opt-in)
+- [x] Deck engine v1 — friends bucket (follows), discovery bucket, stub padding for sparse graphs
+- [x] Bucket plan v1 (rule-based, not ML — friends / discovery / shelves buckets live)
+- [x] 20-card finite deck with completion screen
+- [x] Baseline view switcher (Following-only chronological) — constitutional requirement ✓
+- [x] Check-in system: satisfaction prompt on deck completion (cohort sampling: Phase 2)
+- [x] Shelves: create, save, organize, inject into deck
+- [x] Follow system + user profiles _(community join: Phase 2)_
 - [ ] "Why this?" panel (rule-based explanations for P1, with source bucket label)
 - [ ] Share with friction (read-before-share, friend-first defaults, 3s cooldown on throttled)
 - [ ] Basic arousal detection (keyword-based heuristics for P1, mapped to 3-band system)
@@ -535,7 +535,7 @@ In Civic Lane decks:
 - [ ] Ranking RFC tracking (internal tooling — even if no public-facing RFC yet)
 - [ ] Versioned ranking configs (for rollback)
 - [ ] Dark mode
-- [ ] React Native app (iOS + Android)
+- [ ] React Native app (iOS + Android) _(iOS: in progress; Android: pending)_
 - [ ] Next.js web app
 
 #### Success metrics:
@@ -593,7 +593,7 @@ In Civic Lane decks:
 - [ ] Sponsored content system (labeled, in-deck, skippable, contextual only — no behavioral microtargeting)
 - [ ] Community moderation tools (topic-bound communities, shelf-linked mod actions)
 - [ ] Explore v2 (curated topic browsing, creator discovery, trending shelves — never trending posts)
-- [ ] Direct messaging (intentional, not an anxiety driver)
+- [ ] Direct messaging — Signal Protocol E2EE, metadata minimization, no engagement mechanics (see §14)
 - [ ] Group shelves (shared libraries for communities)
 - [ ] Events (in-person and digital, scoped to communities)
 - [ ] API for third-party clients
@@ -884,6 +884,95 @@ API and web are on separate subdomains (not path-routed) because the mobile app 
 | `api.dev.joinharbor.app` | harbor-api (port 4000) | Fastify API — called by web and mobile |
 
 Production will mirror this pattern: `joinharbor.app` + `api.joinharbor.app`.
+
+---
+
+## 14. Messaging Architecture (Phase 3)
+
+Harbor messaging implements Signal-level privacy as a constitutional requirement (Constitution §9). The server is a blind relay — it cannot read message contents.
+
+### 14.1 Encryption Protocol
+
+**Signal Protocol** (libsignal or equivalent open-source implementation):
+- X3DH (Extended Triple Diffie-Hellman) for initial key agreement
+- Double Ratchet for per-message forward secrecy
+- One-time prekeys published to the server; server never holds private keys
+
+### 14.2 Database Schema
+
+```sql
+-- Identity keys (public halves only — private keys never leave the device)
+CREATE TABLE messaging_identity_keys (
+  user_id          UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  identity_key_pub TEXT NOT NULL,        -- base64 public identity key
+  signed_prekey    TEXT NOT NULL,        -- current signed prekey (public)
+  prekey_signature TEXT NOT NULL,
+  registered_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- One-time prekeys (consumed on session init; replenished by client)
+CREATE TABLE messaging_one_time_prekeys (
+  id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id  UUID REFERENCES users(id) ON DELETE CASCADE,
+  key_id   INT NOT NULL,
+  prekey   TEXT NOT NULL,               -- base64 public prekey
+  UNIQUE (user_id, key_id)
+);
+
+-- Message envelopes (ciphertext only — server cannot decrypt)
+CREATE TABLE messages (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_id       UUID REFERENCES users(id) ON DELETE SET NULL,
+  recipient_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+  conversation_id UUID NOT NULL,        -- derived from sorted participant IDs
+  ciphertext      TEXT NOT NULL,        -- base64 encrypted payload
+  sent_at         TIMESTAMPTZ DEFAULT NOW(),
+  delivered_at    TIMESTAMPTZ,
+  expires_at      TIMESTAMPTZ           -- TTL; null = keep until deleted by user
+);
+
+-- Conversations (metadata only — no content)
+CREATE TABLE conversations (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  participant_a UUID REFERENCES users(id) ON DELETE CASCADE,
+  participant_b UUID REFERENCES users(id) ON DELETE CASCADE,
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (participant_a, participant_b)
+);
+```
+
+### 14.3 Key API Endpoints
+
+```
+GET    /api/messaging/keys/:userId          — fetch recipient's public keys (for session init)
+POST   /api/messaging/keys/prekeys          — upload a batch of one-time prekeys
+POST   /api/messaging/send                  — submit encrypted envelope for delivery
+GET    /api/messaging/inbox                 — fetch pending envelopes (ciphertext only)
+DELETE /api/messaging/messages/:id          — delete own message envelope
+DELETE /api/messaging/conversations/:id     — delete conversation record
+POST   /api/messaging/conversations/:id/block — block sender
+```
+
+### 14.4 What the Server Stores and Retains
+
+| Data | Stored | Retention |
+|---|---|---|
+| Message ciphertext | Yes (relay only) | Until delivered + 30 days, or user deletes |
+| Message plaintext | Never | — |
+| Sender + recipient IDs | Yes (routing) | Until conversation deleted |
+| Timestamps | Yes (sent, delivered) | Until conversation deleted |
+| Read receipts | Only if both parties opt in | Until conversation deleted |
+| Message length / media type | No | — |
+| "Is typing" state | Only if both opt in, in-memory only | Not persisted |
+
+### 14.5 Constitutional Compliance
+
+- No unread badge counts surfaced on the app icon or main tab bar
+- Message metadata not included in any ranking or personalization signal
+- Full conversation deletion available at any time (both local and server-side)
+- Encryption implementation uses auditable open-source libraries
+- Read receipts and typing indicators are double-opt-in only
 
 ### 13.5 Secrets Management
 
