@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   Alert,
+  Modal,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
@@ -18,6 +19,8 @@ import {
   Question,
   ArrowsClockwise,
   ArrowLeft,
+  X,
+  Sparkle,
 } from 'phosphor-react-native'
 import { router } from 'expo-router'
 
@@ -40,6 +43,100 @@ const BUCKET_COLORS: Record<string, string> = {
   groups:    colors.light.accentSuccess,
   shelves:   colors.light.accentCaution,
   discovery: colors.light.accentCivic,
+}
+
+const BUCKET_REASONS: Record<string, string> = {
+  friends:   'You follow this person. Harbor prioritizes people you've connected with.',
+  groups:    'This came from a group you've joined. Harbor shows you what your communities are discussing.',
+  shelves:   'This matches a topic on one of your shelves. Harbor uses your shelves as your interest library.',
+  discovery: 'This is adjacent to your interests. Harbor includes a small amount of discovery to help you find new things — but it's capped.',
+}
+
+// ─── Why This? Panel ──────────────────────────────────────────────────────────
+
+type WhyThisCard = {
+  source_bucket:  string
+  is_serendipity: boolean
+  creator:        { name: string; handle: string }
+}
+
+function WhyThisPanel({
+  card,
+  visible,
+  onClose,
+}: {
+  card:    WhyThisCard | null
+  visible: boolean
+  onClose: () => void
+}) {
+  const insets = useSafeAreaInsets()
+  if (!card) return null
+
+  const bucketColor  = BUCKET_COLORS[card.source_bucket] ?? colors.light.textMuted
+  const bucketLabel  = BUCKET_LABELS[card.source_bucket] ?? card.source_bucket
+  const bucketReason = BUCKET_REASONS[card.source_bucket] ?? 'Harbor selected this based on your interests.'
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.modalBackdrop} onPress={onClose} />
+      <View style={[styles.modalSheet, { paddingBottom: insets.bottom + space[6] }]}>
+
+        {/* Header */}
+        <View style={styles.modalHeader}>
+          <View style={styles.modalHandleBar} />
+          <View style={styles.modalTitleRow}>
+            <Question size={18} color={colors.light.textPrimary} weight="bold" />
+            <Text style={styles.modalTitle}>Why this?</Text>
+            <Pressable onPress={onClose} style={styles.modalCloseBtn} hitSlop={12}>
+              <X size={18} color={colors.light.textMuted} weight="bold" />
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Source bucket reason */}
+        <View style={styles.modalSection}>
+          <View style={[styles.modalBucketBadge, { backgroundColor: bucketColor + '18' }]}>
+            <View style={[styles.bucketDot, { backgroundColor: bucketColor }]} />
+            <Text style={[styles.bucketText, { color: bucketColor }]}>{bucketLabel}</Text>
+          </View>
+          <Text style={styles.modalReason}>{bucketReason}</Text>
+        </View>
+
+        {/* Creator */}
+        <View style={styles.modalDivider} />
+        <View style={styles.modalSection}>
+          <Text style={styles.modalSectionLabel}>Creator</Text>
+          <Text style={styles.modalCreatorName}>{card.creator.name}</Text>
+          <Text style={styles.modalCreatorHandle}>@{card.creator.handle}</Text>
+        </View>
+
+        {/* Serendipity disclosure */}
+        {card.is_serendipity && (
+          <>
+            <View style={styles.modalDivider} />
+            <View style={[styles.modalSection, styles.modalSerendipityRow]}>
+              <Sparkle size={16} color={colors.light.accentCivic} weight="fill" />
+              <Text style={styles.modalSerendipityText}>
+                This is a serendipity pick — slightly outside your usual interests. Harbor keeps this capped at 10–15% of your deck.
+              </Text>
+            </View>
+          </>
+        )}
+
+        {/* P1 note */}
+        <View style={styles.modalDivider} />
+        <Text style={styles.modalFootnote}>
+          You'll be able to edit these signals — "less of this," "more from friends" — in a future update.
+        </Text>
+
+      </View>
+    </Modal>
+  )
 }
 
 // ─── Completion screen ────────────────────────────────────────────────────────
@@ -134,8 +231,9 @@ export default function DeckScreen() {
   const insets      = useSafeAreaInsets()
   const { cards, cardIndex, advanceCard, retreatCard, clearDeck, currentIntent, setDeck } = useSessionStore()
   const accessToken = useAuthStore((s) => s.accessToken)
-  const [reloading, setReloading] = useState(false)
-  const [saving, setSaving]       = useState(false)
+  const [reloading, setReloading]       = useState(false)
+  const [saving, setSaving]             = useState(false)
+  const [showWhyThis, setShowWhyThis]   = useState(false)
 
   const isComplete  = cardIndex >= cards.length && cards.length > 0
   const card        = cards[cardIndex]
@@ -285,11 +383,18 @@ export default function DeckScreen() {
         </View>
       </ScrollView>
 
+      {/* ── Why This? panel ── */}
+      <WhyThisPanel
+        card={card}
+        visible={showWhyThis}
+        onClose={() => setShowWhyThis(false)}
+      />
+
       {/* ── Footer: Why this? + counter + nav ── */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + space[2] }]}>
         <Pressable
           style={styles.whyThis}
-          onPress={() => Alert.alert('Why this?', 'Signal explanations are coming in a future sprint.')}
+          onPress={() => setShowWhyThis(true)}
         >
           <Question size={16} color={colors.light.textMuted} weight="regular" />
           <Text style={styles.whyThisText}>Why this?</Text>
@@ -550,6 +655,105 @@ const styles = StyleSheet.create({
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
     color:      colors.light.textSecondary,
+  },
+
+  // Why This? modal
+  modalBackdrop: {
+    flex:            1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  modalSheet: {
+    backgroundColor:   colors.light.bgBase,
+    borderTopLeftRadius:  radius.lg,
+    borderTopRightRadius: radius.lg,
+    paddingHorizontal:    space[5],
+    paddingTop:           space[3],
+    gap:                  space[4],
+    ...shadow.md,
+  },
+  modalHandleBar: {
+    width:           40,
+    height:          4,
+    borderRadius:    2,
+    backgroundColor: colors.light.border,
+    alignSelf:       'center',
+    marginBottom:    space[2],
+  },
+  modalHeader: {
+    gap: space[1],
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems:    'center',
+    gap:           space[2],
+  },
+  modalTitle: {
+    flex:       1,
+    fontSize:   fontSize.base,
+    fontFamily: fontFamily.interBold,
+    color:      colors.light.textPrimary,
+  },
+  modalCloseBtn: {
+    padding: space[1],
+  },
+  modalSection: {
+    gap: space[2],
+  },
+  modalBucketBadge: {
+    flexDirection:     'row',
+    alignItems:        'center',
+    gap:               space[1],
+    alignSelf:         'flex-start',
+    paddingVertical:   4,
+    paddingHorizontal: space[3],
+    borderRadius:      radius.full,
+  },
+  modalReason: {
+    fontSize:   fontSize.base,
+    fontFamily: fontFamily.inter,
+    color:      colors.light.textPrimary,
+    lineHeight: 22,
+  },
+  modalDivider: {
+    height:          1,
+    backgroundColor: colors.light.border,
+  },
+  modalSectionLabel: {
+    fontSize:   fontSize.xs,
+    fontFamily: fontFamily.interMedium,
+    color:      colors.light.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing:  0.6,
+  },
+  modalCreatorName: {
+    fontSize:   fontSize.base,
+    fontFamily: fontFamily.interBold,
+    color:      colors.light.textPrimary,
+  },
+  modalCreatorHandle: {
+    fontSize:   fontSize.sm,
+    fontFamily: fontFamily.inter,
+    color:      colors.light.textSecondary,
+    marginTop:  -space[1],
+  },
+  modalSerendipityRow: {
+    flexDirection: 'row',
+    alignItems:    'flex-start',
+    gap:           space[2],
+  },
+  modalSerendipityText: {
+    flex:       1,
+    fontSize:   fontSize.sm,
+    fontFamily: fontFamily.inter,
+    color:      colors.light.accentCivic,
+    lineHeight: 20,
+  },
+  modalFootnote: {
+    fontSize:   fontSize.sm,
+    fontFamily: fontFamily.inter,
+    color:      colors.light.textMuted,
+    lineHeight: 19,
+    paddingBottom: space[2],
   },
 
   // Empty state
