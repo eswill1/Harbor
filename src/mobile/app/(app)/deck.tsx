@@ -24,7 +24,7 @@ import { router } from 'expo-router'
 import { colors, fontSize, fontFamily, space, radius, shadow } from '../../constants/tokens'
 import { useSessionStore } from '../../store/session'
 import { useAuthStore } from '../../store/auth'
-import { deckApi } from '../../lib/api'
+import { deckApi, shelvesApi } from '../../lib/api'
 
 // ─── Source bucket labels ─────────────────────────────────────────────────────
 
@@ -135,6 +135,7 @@ export default function DeckScreen() {
   const { cards, cardIndex, advanceCard, retreatCard, clearDeck, currentIntent, setDeck } = useSessionStore()
   const accessToken = useAuthStore((s) => s.accessToken)
   const [reloading, setReloading] = useState(false)
+  const [saving, setSaving]       = useState(false)
 
   const isComplete  = cardIndex >= cards.length && cards.length > 0
   const card        = cards[cardIndex]
@@ -161,6 +162,44 @@ export default function DeckScreen() {
   const handleCreatorPress = () => {
     if (card && card.creator.id && card.creator.id !== '00000000-0000-0000-0000-000000000000') {
       router.push({ pathname: '/(app)/user/[id]', params: { id: card.creator.id } })
+    }
+  }
+
+  const handleSave = async () => {
+    if (!accessToken || saving || !card) return
+    if (card.id === '00000000-0000-0000-0000-000000000000') {
+      Alert.alert('Cannot save', 'This is a sample card and cannot be saved.')
+      return
+    }
+    setSaving(true)
+    try {
+      const shelves = await shelvesApi.list(accessToken)
+      if (shelves.length === 0) {
+        Alert.alert('No shelves', 'Create a shelf first from the Shelves tab.')
+        return
+      }
+      Alert.alert(
+        'Save to shelf',
+        'Choose a shelf:',
+        [
+          ...shelves.map((shelf) => ({
+            text: shelf.name,
+            onPress: async () => {
+              try {
+                await shelvesApi.saveItem(shelf.id, card.id, accessToken)
+                Alert.alert('Saved', `Added to "${shelf.name}"`)
+              } catch {
+                Alert.alert('Error', 'Could not save. Please try again.')
+              }
+            },
+          })),
+          { text: 'Cancel', style: 'cancel' as const },
+        ],
+      )
+    } catch {
+      Alert.alert('Error', 'Could not load shelves.')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -227,8 +266,12 @@ export default function DeckScreen() {
 
         {/* Actions */}
         <View style={styles.actions}>
-          <Pressable style={styles.actionBtn}>
-            <BookmarkSimple size={20} color={colors.light.textSecondary} weight="regular" />
+          <Pressable style={styles.actionBtn} onPress={handleSave} disabled={saving}>
+            <BookmarkSimple
+              size={20}
+              color={saving ? colors.light.accentPrimary : colors.light.textSecondary}
+              weight={saving ? 'fill' : 'regular'}
+            />
             <Text style={styles.actionLabel}>Save</Text>
           </Pressable>
           <Pressable style={styles.actionBtn}>
