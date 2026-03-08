@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import * as SecureStore from 'expo-secure-store'
+import { useSessionStore } from './session'
 
 const REFRESH_KEY = 'harbor_refresh_token'
 
@@ -32,6 +33,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   clearAuth: async () => {
     await SecureStore.deleteItemAsync(REFRESH_KEY)
+    useSessionStore.getState().clearDeck()
     set({ user: null, accessToken: null, isLoading: false })
   },
 
