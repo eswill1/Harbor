@@ -288,6 +288,7 @@ Any change to:
 - Civic lane boundaries
 - Friction thresholds for amplification
 - Visibility or notice behavior for enforcement
+- Messaging or notification defaults, batching thresholds, quiet hours, or indicator behavior (Constitution §9–10)
 
 Material changes require the RFC process and formal evaluation below.
 
@@ -311,6 +312,59 @@ A change may only ship globally if all of the following hold:
 | Dogpile indicators | Non-worsening |
 | Notice coverage | Non-worsening |
 | Appeal health | Non-worsening |
+
+---
+
+## Messaging and Notification Metrics
+
+Messaging and notification changes are treated as material changes and must pass the same gating and rollback standards as ranking changes (Constitution §9–10).
+
+### Required Tracked Metrics
+
+Any messaging or notification UX change must be evaluated against, at minimum:
+
+| Metric | Why |
+|---|---|
+| Regret Rate (RR) | Primary compulsion signal |
+| Satisfied Session Rate (SSR) — overall and by intent | Check for indirect distraction effects |
+| Deck Chaining Rate (DCR) — especially rapid chaining (3+ decks/10 min) | Compulsive app-open proxy |
+| Worse Mood Rate (WMR) | If collected (opt-in cohort) |
+| Arousal Exposure Index (AEI) | Ensure messaging doesn't indirectly drive higher-arousal consumption |
+
+### Ship Gates for Notification Changes
+
+A messaging or notification change cannot ship globally if it causes (vs. control/holdout):
+
+| Metric | Block Threshold |
+|---|---|
+| RR increase | > 5% relative |
+| SSR decrease | > 2% relative |
+| Rapid deck chaining increase | > 20% relative (especially if RR increases at all) |
+| Worse mood increase | > 5% relative (if measured) |
+| AEI high-band exposure increase | > 5% relative |
+
+### Hard Constraints for Notification Design
+
+Messaging notifications and indicators must not be designed or tuned to increase:
+- Session frequency
+- Time spent
+- Compulsive checking behavior (proxy: rapid app opens immediately following push notifications)
+
+Any increase in these proxies must be treated as a drift signal and investigated before shipping.
+
+### Auto-Rollback Triggers (Messaging-Specific)
+
+If a messaging or notification change produces, sustained for 2+ hours vs. baseline:
+- RR ≥ 15% relative increase, **or**
+- Rapid app opens immediately following pushes, coupled with any RR increase
+
+…then the change must automatically roll back and be re-reviewed.
+
+### Transparency Requirement
+
+Any material change to messaging or notification behavior (defaults, batching thresholds, quiet hours, dot behavior, priority contact limits) must be documented in:
+- An internal RFC, **and**
+- A user-facing change note ("what changed and why") when shipped.
 
 ---
 
@@ -417,4 +471,7 @@ mute_user
 report_content
 prompt_shown
 prompt_response         (satisfaction / regret / mood)
+message_delivered       (conversation_id — no content; delivery confirmation only)
+notification_sent       (type: push/digest/silent; conversation_id; no content)
+notification_opened     (notification_id — compulsion proxy; monitor for rapid repeat opens)
 ```
