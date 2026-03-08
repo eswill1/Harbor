@@ -52,17 +52,23 @@ function CompletionScreen({ onNewDeck, onChangeIntent }: {
   const sessionId  = useSessionStore((s) => s.sessionId)
   const accessToken = useAuthStore((s) => s.accessToken)
   const clearDeck  = useSessionStore((s) => s.clearDeck)
-  const [submitted, setSubmitted] = useState(false)
+  const [selected, setSelected] = useState<1 | 2 | 3 | null>(null)
 
   const handleSatisfaction = async (value: 1 | 2 | 3) => {
-    if (!sessionId || !accessToken || submitted) return
-    setSubmitted(true)
+    if (!sessionId || !accessToken || selected !== null) return
+    setSelected(value)
     try {
       await deckApi.complete(sessionId, value, accessToken)
     } catch {
       // Non-critical — don't surface to user
     }
+    if (value === 1) {
+      // "Yes, I'm done" — go back to intent selector
+      onChangeIntent()
+    }
   }
+
+  const isDone = selected !== null
 
   return (
     <View style={[styles.completion, { paddingTop: insets.top + space[8], paddingBottom: insets.bottom + space[6] }]}>
@@ -72,29 +78,38 @@ function CompletionScreen({ onNewDeck, onChangeIntent }: {
       <Text style={styles.completionSub}>That was your 20-card deck.</Text>
 
       <View style={styles.satisfactionRow}>
-        <Text style={styles.satisfactionQ}>Did you get what you came for?</Text>
+        {isDone ? (
+          <Text style={styles.satisfactionThanks}>Thanks for the feedback.</Text>
+        ) : (
+          <Text style={styles.satisfactionQ}>Did you get what you came for?</Text>
+        )}
         <View style={styles.satisfactionButtons}>
           {([
-            { label: 'Yes, I\'m done', value: 1 as const },
-            { label: 'Sort of',        value: 2 as const },
-            { label: 'Not really',     value: 3 as const },
-          ]).map(({ label, value }) => (
-            <Pressable
-              key={value}
-              style={[
-                styles.satisfactionBtn,
-                value === 1 && styles.satisfactionBtnPrimary,
-              ]}
-              onPress={() => handleSatisfaction(value)}
-            >
-              <Text style={[
-                styles.satisfactionBtnText,
-                value === 1 && styles.satisfactionBtnTextPrimary,
-              ]}>
-                {label}
-              </Text>
-            </Pressable>
-          ))}
+            { label: "Yes, I'm done", value: 1 as const },
+            { label: 'Sort of',       value: 2 as const },
+            { label: 'Not really',    value: 3 as const },
+          ]).map(({ label, value }) => {
+            const isChosen = selected === value
+            return (
+              <Pressable
+                key={value}
+                style={[
+                  styles.satisfactionBtn,
+                  isChosen && styles.satisfactionBtnPrimary,
+                  isDone && !isChosen && styles.satisfactionBtnDimmed,
+                ]}
+                onPress={() => handleSatisfaction(value)}
+                disabled={isDone}
+              >
+                <Text style={[
+                  styles.satisfactionBtnText,
+                  isChosen && styles.satisfactionBtnTextPrimary,
+                ]}>
+                  {label}
+                </Text>
+              </Pressable>
+            )
+          })}
         </View>
       </View>
 
@@ -435,6 +450,12 @@ const styles = StyleSheet.create({
     color:      colors.light.textPrimary,
     textAlign:  'center',
   },
+  satisfactionThanks: {
+    fontSize:   fontSize.base,
+    fontFamily: fontFamily.interMedium,
+    color:      colors.light.accentPrimary,
+    textAlign:  'center',
+  },
   satisfactionButtons: {
     gap:   space[2],
     width: '100%',
@@ -450,6 +471,9 @@ const styles = StyleSheet.create({
   satisfactionBtnPrimary: {
     backgroundColor: colors.light.accentPrimary,
     borderColor:     colors.light.accentPrimary,
+  },
+  satisfactionBtnDimmed: {
+    opacity: 0.35,
   },
   satisfactionBtnText: {
     fontSize:   fontSize.base,
