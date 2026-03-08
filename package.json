@@ -4,8 +4,7 @@
   "private": true,
   "workspaces": [
     "src/api",
-    "src/web",
-    "src/mobile"
+    "src/web"
   ],
   "scripts": {
     "dev:api": "npm run dev --workspace=src/api",
