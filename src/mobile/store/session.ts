@@ -43,7 +43,7 @@ export const useSessionStore = create<SessionState>((set) => ({
 
   setDeck: (sessionId, cards) => set({ sessionId, cards, cardIndex: 0 }),
 
-  advanceCard: () => set((s) => ({ cardIndex: Math.min(s.cardIndex + 1, s.cards.length - 1) })),
+  advanceCard: () => set((s) => ({ cardIndex: Math.min(s.cardIndex + 1, s.cards.length) })),
 
   retreatCard: () => set((s) => ({ cardIndex: Math.max(s.cardIndex - 1, 0) })),
 
