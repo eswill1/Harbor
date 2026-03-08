@@ -175,6 +175,25 @@ export const shelvesApi = {
     api.delete<{ ok: boolean }>(`/api/shelves/${shelfId}/items/${contentId}`, token),
 }
 
+// ─── Feed API ─────────────────────────────────────────────────────────────────
+
+export interface FeedPost {
+  id:         string
+  body:       string
+  created_at: string
+  author:     { id: string; handle: string; display_name: string }
+}
+
+export interface FeedResponse {
+  posts: FeedPost[]
+  total: number
+}
+
+export const feedApi = {
+  get: (token: string, limit = 20, offset = 0) =>
+    api.get<FeedResponse>(`/api/feed?limit=${limit}&offset=${offset}`, token),
+}
+
 // ─── Users API ────────────────────────────────────────────────────────────────
 
 export interface UserProfile {
