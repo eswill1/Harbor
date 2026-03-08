@@ -12,6 +12,7 @@ services:
       PORT: "4000"
       DATABASE_URL: ${DATABASE_URL}
       NODE_TLS_REJECT_UNAUTHORIZED: ${NODE_TLS_REJECT_UNAUTHORIZED:-1}
+      JWT_SECRET: ${JWT_SECRET}
       REDIS_URL: redis://redis:6379
       CORS_ORIGIN: ${CORS_ORIGIN:-https://dev.joinharbor.app}
       LOG_LEVEL: ${LOG_LEVEL:-info}
