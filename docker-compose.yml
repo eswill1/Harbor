@@ -72,11 +72,6 @@ services:
       --enable-cors
     networks:
       - harbor
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8108/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 volumes:
   redis_data:
