@@ -247,8 +247,6 @@ function buildStubDeck(intent: IntentId): StubCard[] {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const REAL_SOURCE_BUCKETS: SourceBucket[] = ['friends', 'groups', 'discovery']
-
 function arousalBand(score: number | null): ArousalBand {
   if (score === null) return 'low'
   if (score < 0.34)  return 'low'
@@ -282,33 +280,81 @@ export default async function deckRoutes(app: FastifyInstance) {
     const session_id = sessionRows[0].id
 
     // Try to build deck from real DB content
-    const { rows: postRows } = await app.db.query<RealPostRow>(
+    // Query 1: posts from users the current user follows ("friends" bucket)
+    const { rows: friendRows } = await app.db.query<RealPostRow>(
       `SELECT c.id, c.body, c.arousal_score, c.created_at,
               u.id AS author_id, u.display_name, u.handle
        FROM content c
        JOIN users u ON u.id = c.author_id
-       WHERE c.content_type = 'post' AND c.body IS NOT NULL
+       JOIN follows f ON f.followee_id = u.id
+       WHERE f.follower_id = $1
+         AND c.content_type = 'post'
+         AND c.body IS NOT NULL
        ORDER BY c.created_at DESC
-       LIMIT 20`,
+       LIMIT 8`,
+      [userId],
+    )
+
+    // Query 2: discovery posts (not from followed users, not own posts)
+    const { rows: discoveryRows } = await app.db.query<RealPostRow>(
+      `SELECT c.id, c.body, c.arousal_score, c.created_at,
+              u.id AS author_id, u.display_name, u.handle
+       FROM content c
+       JOIN users u ON u.id = c.author_id
+       WHERE c.content_type = 'post'
+         AND c.body IS NOT NULL
+         AND c.author_id != $1
+         AND c.author_id NOT IN (
+           SELECT followee_id FROM follows WHERE follower_id = $1
+         )
+       ORDER BY c.created_at DESC
+       LIMIT 15`,
+      [userId],
     )
 
     let cards: StubCard[]
 
-    if (postRows.length >= 5) {
-      // Build base deck from real posts
-      cards = postRows.map((post, i) => ({
+    if (friendRows.length + discoveryRows.length >= 5) {
+      // Map each bucket to typed cards
+      const friendCards: StubCard[] = friendRows.map((post) => ({
         id:             post.id,
-        position:       i + 1,
+        position:       0,
         creator: {
           id:     post.author_id,
           name:   post.display_name,
           handle: post.handle,
         },
         content:        post.body,
-        source_bucket:  REAL_SOURCE_BUCKETS[i % REAL_SOURCE_BUCKETS.length],
+        source_bucket:  "friends" as SourceBucket,
         arousal_band:   arousalBand(post.arousal_score),
         is_serendipity: false,
       }))
+
+      const discoveryCards: StubCard[] = discoveryRows.map((post) => ({
+        id:             post.id,
+        position:       0,
+        creator: {
+          id:     post.author_id,
+          name:   post.display_name,
+          handle: post.handle,
+        },
+        content:        post.body,
+        source_bucket:  "discovery" as SourceBucket,
+        arousal_band:   arousalBand(post.arousal_score),
+        is_serendipity: true,
+      }))
+
+      // Interleave: for every 2 discovery cards, insert 1 friends card
+      const interleaved: StubCard[] = []
+      let fi = 0
+      let di = 0
+      while (interleaved.length < 20 && (di < discoveryCards.length || fi < friendCards.length)) {
+        if (di < discoveryCards.length) interleaved.push(discoveryCards[di++])
+        if (interleaved.length < 20 && di < discoveryCards.length) interleaved.push(discoveryCards[di++])
+        if (interleaved.length < 20 && fi < friendCards.length) interleaved.push(friendCards[fi++])
+      }
+
+      cards = interleaved.slice(0, 20).map((card, i) => ({ ...card, position: i + 1 }))
 
       // Inject saved items from user's shelves at positions 3, 8, 13 (0-indexed)
       const { rows: shelfRows } = await app.db.query<RealPostRow>(

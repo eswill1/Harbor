@@ -19,6 +19,7 @@ import deckRoutes from './routes/decks'
 import postRoutes from './routes/posts'
 import userRoutes from './routes/users'
 import shelvesRoutes from './routes/shelves'
+import feedRoutes from './routes/feed'
 
 const app = Fastify({
   logger: {
@@ -44,6 +45,7 @@ const start = async () => {
   await app.register(postRoutes)
   await app.register(userRoutes)
   await app.register(shelvesRoutes)
+  await app.register(feedRoutes)
 
   try {
     await app.listen({ port: config.PORT, host: '0.0.0.0' })
