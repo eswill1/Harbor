@@ -6,6 +6,7 @@ import {
   Anchor,
   BookmarksSimple,
   Compass,
+  PencilLine,
   User,
 } from 'phosphor-react-native'
 
@@ -64,6 +65,15 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
+        name="compose"
+        options={{
+          title: 'Write',
+          tabBarIcon: ({ color, size }) => (
+            <PencilLine size={size} color={color} weight="regular" />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
@@ -75,6 +85,11 @@ export default function AppLayout() {
       {/* Deck is navigated to programmatically — hidden from tab bar */}
       <Tabs.Screen
         name="deck"
+        options={{ href: null }}
+      />
+      {/* User profile — navigated to from deck card creator press */}
+      <Tabs.Screen
+        name="user/[id]"
         options={{ href: null }}
       />
     </Tabs>

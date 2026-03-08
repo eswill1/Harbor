@@ -95,7 +95,7 @@ export const authApi = {
 export interface DeckCard {
   id:             string
   position:       number
-  creator:        { name: string; handle: string }
+  creator:        { id: string; name: string; handle: string }
   content:        string
   source_bucket:  'friends' | 'groups' | 'shelves' | 'discovery'
   is_serendipity: boolean
@@ -114,4 +114,47 @@ export const deckApi = {
 
   complete: (sessionId: string, satisfaction: 1 | 2 | 3, token: string) =>
     api.post<{ ok: boolean }>(`/api/sessions/${sessionId}/complete`, { satisfaction }, token),
+}
+
+// ─── Posts API ────────────────────────────────────────────────────────────────
+
+export interface Post {
+  id:         string
+  body:       string
+  created_at: string
+  author:     { id: string; handle: string; display_name: string }
+}
+
+export const postsApi = {
+  create: (content: string, token: string) =>
+    api.post<Post>('/api/posts', { content }, token),
+
+  feed: (token: string) =>
+    api.get<Post[]>('/api/posts/feed', token),
+}
+
+// ─── Users API ────────────────────────────────────────────────────────────────
+
+export interface UserProfile {
+  id:              string
+  handle:          string
+  display_name:    string
+  follower_count:  number
+  following_count: number
+  post_count:      number
+  is_following:    boolean
+}
+
+export const usersApi = {
+  me: (token: string) =>
+    api.get<UserProfile>('/api/users/me', token),
+
+  profile: (userId: string, token: string) =>
+    api.get<UserProfile>(`/api/users/${userId}`, token),
+
+  follow: (userId: string, token: string) =>
+    api.post<{ ok: boolean }>(`/api/users/${userId}/follow`, {}, token),
+
+  unfollow: (userId: string, token: string) =>
+    api.delete<{ ok: boolean }>(`/api/users/${userId}/follow`, token),
 }

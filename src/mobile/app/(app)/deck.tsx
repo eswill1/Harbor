@@ -158,6 +158,12 @@ export default function DeckScreen() {
     router.back()
   }
 
+  const handleCreatorPress = () => {
+    if (card && card.creator.id && card.creator.id !== '00000000-0000-0000-0000-000000000000') {
+      router.push({ pathname: '/(app)/user/[id]', params: { id: card.creator.id } })
+    }
+  }
+
   if (cards.length === 0) {
     return (
       <View style={[styles.empty, { paddingTop: insets.top }]}>
@@ -193,7 +199,10 @@ export default function DeckScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.cardHeader}>
+        <Pressable
+          onPress={handleCreatorPress}
+          style={({ pressed }) => [styles.cardHeader, pressed && { opacity: 0.7 }]}
+        >
           <View style={styles.avatar}>
             <Text style={styles.avatarInitial}>
               {card.creator.name.charAt(0)}
@@ -203,7 +212,7 @@ export default function DeckScreen() {
             <Text style={styles.creatorName}>{card.creator.name}</Text>
             <Text style={styles.creatorHandle}>@{card.creator.handle}</Text>
           </View>
-        </View>
+        </Pressable>
 
         {/* Source bucket pill */}
         <View style={[styles.bucketPill, { backgroundColor: BUCKET_COLORS[card.source_bucket] + '18' }]}>
