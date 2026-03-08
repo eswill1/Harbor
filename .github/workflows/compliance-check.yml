@@ -15,20 +15,24 @@ jobs:
           script: |
             const body = context.payload.pull_request.body || '';
 
-            // Count unchecked compliance items (lines with "- [ ]")
+            // Count unchecked items: - [ ] (open checkbox, not yet resolved)
+            // - [x] = passes / confirmed not violated
+            // - [N/A] = not applicable to this PR (conditional items)
+            // Both [x] and [N/A] are acceptable; only [ ] blocks merge.
             const unchecked = (body.match(/- \[ \]/g) || []).length;
             const checked   = (body.match(/- \[x\]/gi) || []).length;
+            const na        = (body.match(/- \[N\/A\]/gi) || []).length;
 
             if (unchecked > 0) {
               core.setFailed(
-                `Compliance checklist incomplete: ${unchecked} item(s) unchecked. ` +
-                `All compliance items must be checked before merge.`
+                `Compliance checklist incomplete: ${unchecked} item(s) still unchecked. ` +
+                `Mark each item [x] (confirmed) or [N/A] (not applicable) before merge.`
               );
-            } else if (checked === 0) {
+            } else if (checked + na === 0) {
               core.setFailed(
                 'PR body appears to be missing the compliance checklist. ' +
                 'Use the Pull Request template.'
               );
             } else {
-              console.log(`Compliance checklist complete: ${checked} items verified.`);
+              console.log(`Compliance checklist complete: ${checked} confirmed, ${na} N/A.`);
             }

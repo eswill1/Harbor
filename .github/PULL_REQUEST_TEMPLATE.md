@@ -10,6 +10,7 @@
 
 ## Compliance Checklist
 _Every PR must pass all items before merge._
+_Mark each item `[x]` (confirmed not violated) or `[N/A]` (genuinely not applicable to this PR). Leave nothing as `[ ]`._
 
 **Constitutional Guardrails**
 - [ ] No infinite scroll introduced (Constitution §1)
