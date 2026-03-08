@@ -903,12 +903,47 @@ cd /home/ed/harbor
 doppler run -- docker compose up -d
 ```
 
-### 13.6 Phase 1 Deploy Pattern
+### 13.6 Database — Supabase Staging
 
-Until GitHub Actions CI/CD is wired up:
+| Property | Value |
+|---|---|
+| Provider | Supabase (managed PostgreSQL) |
+| PostgreSQL version | 17.6 |
+| Extensions | pgvector (vector(384)) |
+| Project URL | https://grylhrilyimbtlzaqqgp.supabase.co |
+| Migrations | `src/api/migrations/` |
+| Connection string | Stored in Doppler as `DATABASE_URL` (stg config) |
 
+**Applied migrations:**
+- `001_initial_schema.sql` — 14 tables, 14 indexes, pgvector enabled
+
+**Running migrations:**
 ```bash
-# From local machine
+export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
+psql "$(doppler secrets get DATABASE_URL --project harbor --config stg --plain)" \
+  -f src/api/migrations/NNN_name.sql
+```
+
+### 13.7 CI/CD — GitHub Actions
+
+Every push to `main` triggers `.github/workflows/deploy.yml`:
+
+1. Checkout code on Actions runner
+2. rsync to VPS (excludes `node_modules`, `.next`, `dist`, `.env`)
+3. `docker compose build` on VPS
+4. `doppler run -- docker compose up -d` on VPS
+5. Health check: `https://api.dev.joinharbor.app/health` + `https://dev.joinharbor.app`
+
+**Secrets stored in GitHub Actions:**
+
+| Secret | Purpose |
+|---|---|
+| `VPS_SSH_PRIVATE_KEY` | Dedicated ED25519 deploy key (not the main admin key) |
+| `VPS_HOST` | VPS IP address |
+| `VPS_USER` | VPS login user |
+
+**Emergency manual deploy** (if Actions is unavailable):
+```bash
 rsync -az --delete \
   --exclude=node_modules --exclude=.next --exclude=dist \
   --exclude=.git --exclude=.DS_Store --exclude=.env \
