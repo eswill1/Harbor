@@ -221,7 +221,7 @@ Harbor messaging must be private by design — not private by policy. The follow
 
 **Notifications — allowed, but non-compulsive by design**
 - Push notifications are allowed and must be content-free by default (e.g., "New message from Alex" or "You have a new message" — no preview of content unless the user explicitly enables previews).
-- Push notifications must be rate-limited and batchable to prevent ping loops (see §10 Notification Guidelines).
+- Push notifications must be rate-limited and batchable to prevent ping loops (see Design Bible §8 for implementation guidelines).
 - Messaging notifications must not be designed to increase session frequency or time spent.
 
 **No engagement mechanics in messaging**
@@ -248,48 +248,7 @@ Harbor messaging must be private by design — not private by policy. The follow
 
 ---
 
-## 10. Notification Guidelines (Messaging)
-
-### Core Principle
-
-Harbor must provide awareness ("a message arrived") without creating compulsion (scoreboards, urgency pressure, variable-reward pings).
-
-### In-App Indicators
-
-- **Messages tab:** a single dot appears when any unread messages exist. No numbers anywhere by default.
-- The dot clears when the user visits Messages or explicitly marks all read.
-
-### Push Notifications — Default Behavior
-
-- **Content-free by default:** no message previews unless the user explicitly enables them.
-- **Rate-limited:** limit notifications per conversation to prevent rapid-fire pings (example: at most 1 push per conversation per N minutes while messages continue to arrive).
-- **Batched:** if multiple messages arrive in a short window, send a single summary notification ("You have new messages") rather than one per message.
-- **Quiet hours:** user-configurable do-not-disturb hours; defaults follow device/timezone settings.
-
-### Optional User Modes (Settings)
-
-| Mode | Behavior |
-|---|---|
-| **Polite Push** (default) | Immediate push, but rate-limited and batched |
-| **Digest Mode** | No immediate push; notifications delivered in scheduled batches (e.g., hourly or morning/evening) |
-| **Manual Check** | No push notifications; only the in-app dot |
-
-### Optional Priority Exceptions (Strictly Limited)
-
-- Users may designate a small number of priority contacts whose messages can bypass Digest Mode.
-- Priority contacts are still rate-limited and content-free by default.
-- No "VIP urgency" UI beyond the delivery timing behavior.
-
-### Explicitly Disallowed
-
-- Numeric badge counts on the app icon.
-- Numeric badge counts on the Messages tab.
-- Streaks, "last active" pressure cues, or any mechanic designed to increase checking frequency.
-- Push notification content used as a personalization or ranking signal.
-
----
-
-## 11. The Prime Directive
+## 10. The Prime Directive
 
 If Harbor must choose between:
 

@@ -288,7 +288,7 @@ Any change to:
 - Civic lane boundaries
 - Friction thresholds for amplification
 - Visibility or notice behavior for enforcement
-- Messaging or notification defaults, batching thresholds, quiet hours, or indicator behavior (Constitution §9–10)
+- Messaging or notification defaults, batching thresholds, quiet hours, or indicator behavior (Constitution §9, Design Bible §8)
 
 Material changes require the RFC process and formal evaluation below.
 
@@ -317,7 +317,7 @@ A change may only ship globally if all of the following hold:
 
 ## Messaging and Notification Metrics
 
-Messaging and notification changes are treated as material changes and must pass the same gating and rollback standards as ranking changes (Constitution §9–10).
+Messaging and notification changes are treated as material changes and must pass the same gating and rollback standards as ranking changes (Constitution §9, Design Bible §8).
 
 ### Required Tracked Metrics
 
