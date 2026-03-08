@@ -19,10 +19,19 @@
     },
     "plugins": [
       "expo-router",
-      "react-native-reanimated"
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1B2A3B"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "https://api.dev.joinharbor.app"
     }
   }
 }
