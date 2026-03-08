@@ -1,0 +1,87 @@
+services:
+  api:
+    build:
+      context: ./src/api
+      dockerfile: Dockerfile
+    container_name: harbor-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: redis://redis:6379
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://dev.joinharbor.app}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - harbor
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  web:
+    build:
+      context: ./src/web
+      dockerfile: Dockerfile
+    container_name: harbor-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.dev.joinharbor.app}
+    networks:
+      - harbor
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  redis:
+    image: valkey/valkey:8-alpine
+    container_name: harbor-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - harbor
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  typesense:
+    image: typesense/typesense:27.0
+    container_name: harbor-typesense
+    restart: unless-stopped
+    volumes:
+      - typesense_data:/data
+    command: >
+      --data-dir /data
+      --api-key=${TYPESENSE_API_KEY}
+      --enable-cors
+    networks:
+      - harbor
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8108/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:
+  typesense_data:
+
+networks:
+  harbor:
+    driver: bridge
