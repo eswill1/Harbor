@@ -4,38 +4,30 @@ import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 
+import { config } from './config'
+import dbPlugin from './plugins/db'
+import sensiblePlugin from './plugins/sensible'
+import healthRoutes from './routes/health'
+
 const app = Fastify({
   logger: {
-    level: process.env.LOG_LEVEL ?? 'info',
+    level: config.LOG_LEVEL,
   },
 })
 
 const start = async () => {
-  await app.register(cors, {
-    origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
-  })
-
+  // Plugins
+  await app.register(cors, { origin: config.CORS_ORIGIN })
   await app.register(helmet)
+  await app.register(rateLimit, { max: 100, timeWindow: '1 minute' })
+  await app.register(dbPlugin)
+  await app.register(sensiblePlugin)
 
-  await app.register(rateLimit, {
-    max: 100,
-    timeWindow: '1 minute',
-  })
-
-  app.get('/health', async () => ({
-    status: 'ok',
-    service: 'harbor-api',
-    version: '0.1.0',
-    timestamp: new Date().toISOString(),
-  }))
-
-  app.get('/api/v1/ping', async () => ({ pong: true }))
+  // Routes
+  await app.register(healthRoutes)
 
   try {
-    await app.listen({
-      port: Number(process.env.PORT ?? 4000),
-      host: '0.0.0.0',
-    })
+    await app.listen({ port: config.PORT, host: '0.0.0.0' })
   } catch (err) {
     app.log.error(err)
     process.exit(1)
