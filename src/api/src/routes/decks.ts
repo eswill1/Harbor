@@ -9,11 +9,21 @@ type ArousalBand  = 'low' | 'medium' | 'high'
 interface StubCard {
   id:             string
   position:       number
-  creator:        { name: string; handle: string }
+  creator:        { id: string; name: string; handle: string }
   content:        string
   source_bucket:  SourceBucket
   is_serendipity: boolean
   arousal_band:   ArousalBand
+}
+
+interface RealPostRow {
+  id:           string
+  body:         string
+  arousal_score: number | null
+  created_at:   Date
+  author_id:    string
+  display_name: string
+  handle:       string
 }
 
 // ─── Stub content by intent ───────────────────────────────────────────────────
@@ -180,27 +190,29 @@ const STUB_CONTENT: Record<IntentId, string[]> = {
 
 const SOURCE_BUCKETS: SourceBucket[] = ['friends', 'groups', 'shelves', 'discovery']
 
+const STUB_CREATOR_ID = '00000000-0000-0000-0000-000000000000'
+
 const STUB_CREATORS = [
-  { name: 'Maya Osei',           handle: 'mayaosei' },
-  { name: 'Thomas Brunn',        handle: 'tbrunn' },
-  { name: 'Priya Menon',         handle: 'priyam' },
-  { name: 'James Okeke',         handle: 'jokeke' },
-  { name: 'Saoirse Flynn',       handle: 'saoirsef' },
-  { name: 'Daniel Reyes',        handle: 'danielreyes' },
-  { name: 'Aiko Tanaka',         handle: 'aiko_t' },
-  { name: 'Lena Kovac',          handle: 'lenakovac' },
-  { name: 'Kwame Asante',        handle: 'kwameasante' },
-  { name: 'Fatima Al-Rashid',    handle: 'fatimaar' },
-  { name: 'Emre Yildiz',         handle: 'emrey' },
-  { name: 'Chloe Beaumont',      handle: 'chloe_b' },
-  { name: 'Marcus Webb',         handle: 'mwebb' },
-  { name: 'Yuki Nakamura',       handle: 'yukinakamura' },
-  { name: 'Ingrid Halvorsen',    handle: 'ingridh' },
-  { name: 'Dele Adeyemi',        handle: 'dele_a' },
-  { name: 'Sofia Herrera',       handle: 'sofia_h' },
-  { name: 'Ravi Sharma',         handle: 'ravi_s' },
-  { name: 'Anna Kowalski',       handle: 'annak' },
-  { name: 'Tobias Richter',      handle: 'tobiasrichter' },
+  { id: STUB_CREATOR_ID, name: 'Maya Osei',           handle: 'mayaosei' },
+  { id: STUB_CREATOR_ID, name: 'Thomas Brunn',        handle: 'tbrunn' },
+  { id: STUB_CREATOR_ID, name: 'Priya Menon',         handle: 'priyam' },
+  { id: STUB_CREATOR_ID, name: 'James Okeke',         handle: 'jokeke' },
+  { id: STUB_CREATOR_ID, name: 'Saoirse Flynn',       handle: 'saoirsef' },
+  { id: STUB_CREATOR_ID, name: 'Daniel Reyes',        handle: 'danielreyes' },
+  { id: STUB_CREATOR_ID, name: 'Aiko Tanaka',         handle: 'aiko_t' },
+  { id: STUB_CREATOR_ID, name: 'Lena Kovac',          handle: 'lenakovac' },
+  { id: STUB_CREATOR_ID, name: 'Kwame Asante',        handle: 'kwameasante' },
+  { id: STUB_CREATOR_ID, name: 'Fatima Al-Rashid',    handle: 'fatimaar' },
+  { id: STUB_CREATOR_ID, name: 'Emre Yildiz',         handle: 'emrey' },
+  { id: STUB_CREATOR_ID, name: 'Chloe Beaumont',      handle: 'chloe_b' },
+  { id: STUB_CREATOR_ID, name: 'Marcus Webb',         handle: 'mwebb' },
+  { id: STUB_CREATOR_ID, name: 'Yuki Nakamura',       handle: 'yukinakamura' },
+  { id: STUB_CREATOR_ID, name: 'Ingrid Halvorsen',    handle: 'ingridh' },
+  { id: STUB_CREATOR_ID, name: 'Dele Adeyemi',        handle: 'dele_a' },
+  { id: STUB_CREATOR_ID, name: 'Sofia Herrera',       handle: 'sofia_h' },
+  { id: STUB_CREATOR_ID, name: 'Ravi Sharma',         handle: 'ravi_s' },
+  { id: STUB_CREATOR_ID, name: 'Anna Kowalski',       handle: 'annak' },
+  { id: STUB_CREATOR_ID, name: 'Tobias Richter',      handle: 'tobiasrichter' },
 ]
 
 function shuffle<T>(arr: T[]): T[] {
@@ -233,10 +245,21 @@ function buildStubDeck(intent: IntentId): StubCard[] {
   }))
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const REAL_SOURCE_BUCKETS: SourceBucket[] = ['friends', 'groups', 'discovery']
+
+function arousalBand(score: number | null): ArousalBand {
+  if (score === null) return 'low'
+  if (score < 0.34)  return 'low'
+  if (score < 0.67)  return 'medium'
+  return 'high'
+}
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 export default async function deckRoutes(app: FastifyInstance) {
-  // POST /api/decks — create a session and return a stub deck
+  // POST /api/decks — create a session and return a deck (real or stub)
   app.post('/api/decks', {
     preHandler: [app.authenticate],
   }, async (request, reply) => {
@@ -251,13 +274,43 @@ export default async function deckRoutes(app: FastifyInstance) {
 
     const { userId } = request.user
 
-    const { rows } = await app.db.query<{ id: string }>(
+    const { rows: sessionRows } = await app.db.query<{ id: string }>(
       'INSERT INTO sessions (user_id, intent) VALUES ($1, $2) RETURNING id',
       [userId, intent],
     )
 
-    const session_id = rows[0].id
-    const cards      = buildStubDeck(intent)
+    const session_id = sessionRows[0].id
+
+    // Try to build deck from real DB content
+    const { rows: postRows } = await app.db.query<RealPostRow>(
+      `SELECT c.id, c.body, c.arousal_score, c.created_at,
+              u.id AS author_id, u.display_name, u.handle
+       FROM content c
+       JOIN users u ON u.id = c.author_id
+       WHERE c.content_type = 'post' AND c.body IS NOT NULL
+       ORDER BY c.created_at DESC
+       LIMIT 20`,
+    )
+
+    let cards: StubCard[]
+
+    if (postRows.length >= 5) {
+      cards = postRows.map((post, i) => ({
+        id:             post.id,
+        position:       i + 1,
+        creator: {
+          id:     post.author_id,
+          name:   post.display_name,
+          handle: post.handle,
+        },
+        content:        post.body,
+        source_bucket:  REAL_SOURCE_BUCKETS[i % REAL_SOURCE_BUCKETS.length],
+        arousal_band:   arousalBand(post.arousal_score),
+        is_serendipity: false,
+      }))
+    } else {
+      cards = buildStubDeck(intent)
+    }
 
     return reply.send({ session_id, intent, cards })
   })
