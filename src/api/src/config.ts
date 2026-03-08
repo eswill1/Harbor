@@ -15,6 +15,8 @@ export const config = {
   DATABASE_URL: required('DATABASE_URL'),
   REDIS_URL:    optional('REDIS_URL', 'redis://localhost:6379'),
 
+  JWT_SECRET:   required('JWT_SECRET'),
+
   CORS_ORIGIN:  optional('CORS_ORIGIN', 'http://localhost:3000'),
 
   get isProduction() { return this.NODE_ENV === 'production' },

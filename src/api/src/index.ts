@@ -9,8 +9,12 @@ import rateLimit from '@fastify/rate-limit'
 
 import { config } from './config'
 import dbPlugin from './plugins/db'
+import jwtPlugin from './plugins/jwt'
+import cookiePlugin from './plugins/cookie'
+import authenticatePlugin from './plugins/authenticate'
 import sensiblePlugin from './plugins/sensible'
 import healthRoutes from './routes/health'
+import authRoutes from './routes/auth'
 
 const app = Fastify({
   logger: {
@@ -24,10 +28,14 @@ const start = async () => {
   await app.register(helmet)
   await app.register(rateLimit, { max: 100, timeWindow: '1 minute' })
   await app.register(dbPlugin)
+  await app.register(jwtPlugin)
+  await app.register(cookiePlugin)
+  await app.register(authenticatePlugin)
   await app.register(sensiblePlugin)
 
   // Routes
   await app.register(healthRoutes)
+  await app.register(authRoutes)
 
   try {
     await app.listen({ port: config.PORT, host: '0.0.0.0' })
