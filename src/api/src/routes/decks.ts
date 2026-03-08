@@ -314,7 +314,7 @@ export default async function deckRoutes(app: FastifyInstance) {
 
     let cards: StubCard[]
 
-    if (friendRows.length + discoveryRows.length >= 5) {
+    if (friendRows.length + discoveryRows.length >= 1) {
       // Map each bucket to typed cards
       const friendCards: StubCard[] = friendRows.map((post) => ({
         id:             post.id,
@@ -355,6 +355,15 @@ export default async function deckRoutes(app: FastifyInstance) {
       }
 
       cards = interleaved.slice(0, 20).map((card, i) => ({ ...card, position: i + 1 }))
+
+      // Pad to 20 with stub cards if real content is scarce
+      if (cards.length < 20) {
+        const stubPad = buildStubDeck(intent).slice(0, 20 - cards.length)
+        cards = [
+          ...cards,
+          ...stubPad.map((c, i) => ({ ...c, position: cards.length + i + 1 })),
+        ]
+      }
 
       // Inject saved items from user's shelves at positions 3, 8, 13 (0-indexed)
       const { rows: shelfRows } = await app.db.query<RealPostRow>(
