@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id    ON refresh_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
--- Partial index for fast active-token lookups
+-- Partial index for fast active-token lookups (non-revoked only)
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_active
   ON refresh_tokens(token_hash)
-  WHERE revoked_at IS NULL AND expires_at > NOW();
+  WHERE revoked_at IS NULL;
