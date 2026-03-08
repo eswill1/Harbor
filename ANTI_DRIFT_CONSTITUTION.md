@@ -204,38 +204,92 @@ Harbor messaging must be private by design — not private by policy. The follow
 
 **End-to-end encryption**
 - All direct messages are end-to-end encrypted using an open, auditable protocol (Signal Protocol or equivalent).
-- Harbor servers relay encrypted ciphertext only. Harbor cannot read message contents.
-- Keys are generated and stored on user devices. No server-side key escrow.
-
-**Metadata minimization**
-- Harbor retains the minimum metadata necessary to route and deliver messages: sender/recipient identifiers, message timestamp, and delivery status.
-- Message content, length, media type, and read receipts are not logged server-side beyond the encrypted payload.
-- Metadata is not used as a personalization signal, not included in the ranking graph, and not surfaced in any analytics pipeline.
+- Harbor servers may store and relay encrypted ciphertext only. Store-and-forward for offline delivery is allowed; Harbor cannot read message contents.
+- Keys are generated and stored on user devices. No server-side key escrow. Server-side storage is limited to public key material required for session setup.
 
 **Forward secrecy**
-- The protocol must provide forward secrecy: compromise of a long-term key does not expose past messages.
-- Key ratcheting is implemented per message or per session.
+- The protocol must provide forward secrecy such that compromise of a long-term key does not expose past messages.
+- Key ratcheting is implemented per message or per session, consistent with the protocol.
+
+**Metadata minimization and retention limits**
+- Harbor retains only the metadata required to route and deliver messages: sender/recipient identifiers, message ID, message timestamp, delivery status, and device routing info.
+- Retention limits are mandatory: routing and delivery metadata must be deleted on a fixed schedule (within 30 days) unless required for an abuse investigation initiated by a user report.
+- Infrastructure logs (e.g., IP-level logs) must be minimized and have short retention (7–14 days), and may be used only for reliability and abuse prevention.
+
+**No analytics or ranking use**
+- Messaging metadata is not used as a personalization signal, is not included in any ranking graph, and is not surfaced in analytics pipelines except as aggregate reliability metrics (e.g., delivery success rate) without user-level linkage.
+
+**Notifications — allowed, but non-compulsive by design**
+- Push notifications are allowed and must be content-free by default (e.g., "New message from Alex" or "You have a new message" — no preview of content unless the user explicitly enables previews).
+- Push notifications must be rate-limited and batchable to prevent ping loops (see §10 Notification Guidelines).
+- Messaging notifications must not be designed to increase session frequency or time spent.
 
 **No engagement mechanics in messaging**
-- No unread count badges on the app icon or tab bar.
-- No read receipts by default (opt-in only, both parties must agree).
-- No "is typing" indicators by default (opt-in only).
+- No numeric unread count badges on the app icon or tab bar.
+- A binary "unread" indicator (e.g., a dot) is allowed to signal "new messages exist" without displaying a number.
+- No read receipts by default (opt-in only; both parties must agree).
+- No typing indicators by default (opt-in only).
 - No message reaction counts visible to third parties.
 - Messaging does not feed any algorithm or ranking system.
 
-**User control**
+**Safety without content access**
+- Abuse prevention may use metadata-only mechanisms (rate limiting, spam heuristics, blocklists) but must not involve server-side content inspection.
+- Reporting is user-controlled: when a user reports abuse, the client may attach decrypted message content and relevant context only with explicit user consent.
+
+**User control and deletion semantics**
 - Users can delete their copy of any conversation at any time (local delete).
-- Users can request deletion of their messages from the recipient's device (best-effort, with notice).
+- Users can request deletion of their messages from the recipient's device as a best-effort feature; Harbor cannot guarantee deletion and recipients may retain copies. This limitation must be disclosed honestly.
 - Users can disable messaging entirely from settings.
 - Blocking is immediate and does not notify the blocked party.
 
 **Auditability without content access**
-- Harbor's third-party auditors can verify that the encryption scheme is correctly implemented without accessing message content.
-- Open-source client libraries are used where possible so the encryption implementation is inspectable.
+- Independent auditors must be able to verify correct cryptographic implementation without accessing message content.
+- Open-source client cryptography libraries and reproducible builds are used where possible so implementations are inspectable.
 
 ---
 
-## 10. The Prime Directive
+## 10. Notification Guidelines (Messaging)
+
+### Core Principle
+
+Harbor must provide awareness ("a message arrived") without creating compulsion (scoreboards, urgency pressure, variable-reward pings).
+
+### In-App Indicators
+
+- **Messages tab:** a single dot appears when any unread messages exist. No numbers anywhere by default.
+- The dot clears when the user visits Messages or explicitly marks all read.
+
+### Push Notifications — Default Behavior
+
+- **Content-free by default:** no message previews unless the user explicitly enables them.
+- **Rate-limited:** limit notifications per conversation to prevent rapid-fire pings (example: at most 1 push per conversation per N minutes while messages continue to arrive).
+- **Batched:** if multiple messages arrive in a short window, send a single summary notification ("You have new messages") rather than one per message.
+- **Quiet hours:** user-configurable do-not-disturb hours; defaults follow device/timezone settings.
+
+### Optional User Modes (Settings)
+
+| Mode | Behavior |
+|---|---|
+| **Polite Push** (default) | Immediate push, but rate-limited and batched |
+| **Digest Mode** | No immediate push; notifications delivered in scheduled batches (e.g., hourly or morning/evening) |
+| **Manual Check** | No push notifications; only the in-app dot |
+
+### Optional Priority Exceptions (Strictly Limited)
+
+- Users may designate a small number of priority contacts whose messages can bypass Digest Mode.
+- Priority contacts are still rate-limited and content-free by default.
+- No "VIP urgency" UI beyond the delivery timing behavior.
+
+### Explicitly Disallowed
+
+- Numeric badge counts on the app icon.
+- Numeric badge counts on the Messages tab.
+- Streaks, "last active" pressure cues, or any mechanic designed to increase checking frequency.
+- Push notification content used as a personalization or ranking signal.
+
+---
+
+## 11. The Prime Directive
 
 If Harbor must choose between:
 
