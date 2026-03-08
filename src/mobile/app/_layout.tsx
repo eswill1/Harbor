@@ -17,7 +17,7 @@ import {
 } from '@expo-google-fonts/lora'
 
 import { queryClient } from '../lib/queryClient'
-import { authApi } from '../lib/api'
+import { authApi, usersApi } from '../lib/api'
 import { useAuthStore } from '../store/auth'
 
 SplashScreen.preventAutoHideAsync()
@@ -46,17 +46,13 @@ export default function RootLayout() {
         const refreshToken = await loadRefreshToken()
 
         if (refreshToken) {
-          const result = await authApi.refresh(refreshToken)
-          // We don't have user info from a refresh — navigate to app
-          // and let the profile route fetch it. For now store minimal state.
-          useAuthStore.setState({
-            accessToken: result.access_token,
-            isLoading:   false,
-          })
-          await authApi
-            .refresh(result.refresh_token)
-            .then(() => {})
-            .catch(() => {})
+          const result  = await authApi.refresh(refreshToken)
+          const profile = await usersApi.me(result.access_token)
+          await setAuth(
+            { id: profile.id, handle: profile.handle, display_name: profile.display_name },
+            result.access_token,
+            result.refresh_token,
+          )
         }
       } catch {
         // Refresh failed — send to login
