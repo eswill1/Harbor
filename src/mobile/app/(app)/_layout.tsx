@@ -5,7 +5,7 @@ import { colors } from '../../constants/tokens'
 import {
   Anchor,
   BookmarksSimple,
-  Compass,
+  UsersThree,
   PencilLine,
   User,
 } from 'phosphor-react-native'
@@ -58,9 +58,9 @@ export default function AppLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explore',
+          title: 'Following',
           tabBarIcon: ({ color, size }) => (
-            <Compass size={size} color={color} weight="regular" />
+            <UsersThree size={size} color={color} weight="regular" />
           ),
         }}
       />
