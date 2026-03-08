@@ -660,7 +660,50 @@ These are not aspirational prohibitions — they are structural constraints enfo
 
 ---
 
-## 8. Design Tokens Reference
+## 8. Notification & Messaging UI Guidelines
+
+### Core Principle
+
+Harbor must provide awareness ("a message arrived") without creating compulsion (scoreboards, urgency pressure, variable-reward pings). Every notification decision should pass the same test as every other screen: does this help the user finish, or does it keep them stuck?
+
+### In-App Indicators
+
+- **Messages tab:** a single dot appears when any unread messages exist. No numbers anywhere by default.
+- The dot clears when the user visits Messages or explicitly marks all read.
+- This applies to all notification surfaces — no numeric badge counts on the app icon or any tab.
+
+### Push Notifications — Default Behavior
+
+- **Content-free by default:** show sender name only (e.g., "New message from Alex"). No message preview unless the user explicitly enables it.
+- **Rate-limited per conversation:** at most 1 push per conversation per N minutes while messages continue to arrive, to prevent rapid-fire pings.
+- **Batched on burst:** if multiple messages arrive in a short window, send one summary notification ("You have new messages") rather than one per message.
+- **Quiet hours:** user-configurable do-not-disturb hours; defaults follow device/timezone settings.
+
+### User Notification Modes (Settings)
+
+| Mode | Behavior |
+|---|---|
+| **Polite Push** (default) | Immediate push, rate-limited and batched per the defaults above |
+| **Digest Mode** | No immediate push; notifications delivered in scheduled batches (e.g., hourly or morning/evening) |
+| **Manual Check** | No push notifications at all; only the in-app dot |
+
+### Priority Contacts (Optional, Strictly Limited)
+
+- Users may designate a small number of priority contacts whose messages can bypass Digest Mode and arrive as immediate (rate-limited) pushes.
+- Priority contacts are still content-free and rate-limited.
+- No "VIP urgency" visual treatment beyond the delivery timing difference.
+
+### Explicitly Disallowed
+
+- Numeric badge counts on the app icon.
+- Numeric badge counts on the Messages tab or any other tab.
+- Streaks, "last active X minutes ago" pressure cues, or any mechanic designed to increase checking frequency.
+- Push notification content (preview text, sender pattern) used as a personalization or ranking signal.
+- Any notification pattern that mimics variable-reward loops (e.g., unpredictable timing designed to increase opens).
+
+---
+
+## 9. Design Tokens Reference
 
 All design tokens are defined in a single source-of-truth file (`tokens.json` / CSS custom properties / Figma variables). Tokens follow the pattern:
 
@@ -687,7 +730,7 @@ Platform implementations:
 
 ---
 
-## 9. Design Principles Summary
+## 10. Design Principles Summary
 
 1. **Finish is the goal.** Every screen should make it easy to be done.
 2. **One job per screen.** No screen serves two masters.

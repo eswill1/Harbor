@@ -26,9 +26,9 @@ _Mark each item `[x]` (confirmed not violated) or `[N/A]` (genuinely not applica
 - [ ] If enforcement-adjacent: notice + appeal path present (Constitution §5)
 
 **Messaging & Notifications (if touching messaging or notification surfaces)**
-- [ ] No numeric unread badge counts on app icon or tab bar (Constitution §9–10)
+- [ ] No numeric unread badge counts on app icon or tab bar (Constitution §9, Design Bible §8)
 - [ ] No read receipts or typing indicators introduced as defaults (Constitution §9)
-- [ ] Push notifications are content-free by default and rate-limited (Constitution §10)
+- [ ] Push notifications are content-free by default and rate-limited (Design Bible §8)
 - [ ] Messaging metadata not used as a ranking or personalization signal (Constitution §9)
 - [ ] If material messaging/notification change: RFC submitted and user-facing change note planned (Metrics Standard)
 
