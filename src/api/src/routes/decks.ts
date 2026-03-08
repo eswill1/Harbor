@@ -295,6 +295,7 @@ export default async function deckRoutes(app: FastifyInstance) {
     let cards: StubCard[]
 
     if (postRows.length >= 5) {
+      // Build base deck from real posts
       cards = postRows.map((post, i) => ({
         id:             post.id,
         position:       i + 1,
@@ -308,6 +309,47 @@ export default async function deckRoutes(app: FastifyInstance) {
         arousal_band:   arousalBand(post.arousal_score),
         is_serendipity: false,
       }))
+
+      // Inject saved items from user's shelves at positions 3, 8, 13 (0-indexed)
+      const { rows: shelfRows } = await app.db.query<RealPostRow>(
+        `SELECT c.id, c.body, c.arousal_score, c.created_at,
+                u.id AS author_id, u.display_name, u.handle
+         FROM saved_items si
+         JOIN content c ON c.id = si.content_id
+         JOIN users u ON u.id = c.author_id
+         WHERE si.user_id = $1
+         ORDER BY si.saved_at DESC
+         LIMIT 5`,
+        [userId],
+      )
+
+      if (shelfRows.length > 0) {
+        const SHELF_POSITIONS = [3, 8, 13]
+        const slotsToFill     = Math.min(shelfRows.length, SHELF_POSITIONS.length)
+
+        for (let s = 0; s < slotsToFill; s++) {
+          const pos      = SHELF_POSITIONS[s]
+          const shelfRow = shelfRows[s]
+          if (pos < cards.length) {
+            cards[pos] = {
+              id:             shelfRow.id,
+              position:       pos + 1,
+              creator: {
+                id:     shelfRow.author_id,
+                name:   shelfRow.display_name,
+                handle: shelfRow.handle,
+              },
+              content:        shelfRow.body,
+              source_bucket:  "shelves",
+              arousal_band:   arousalBand(shelfRow.arousal_score),
+              is_serendipity: false,
+            }
+          }
+        }
+
+        // Re-number positions after replacement
+        cards = cards.map((card, i) => ({ ...card, position: i + 1 }))
+      }
     } else {
       cards = buildStubDeck(intent)
     }
