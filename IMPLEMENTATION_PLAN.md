@@ -67,13 +67,14 @@
 
 | Component | Choice |
 |---|---|
-| Container orchestration | **Docker Compose (dev) → Kubernetes (prod)** |
+| Container orchestration | **Docker Compose (dev) → Docker Compose (VPS Phase 1) → Kubernetes (Phase 3)** |
 | CI/CD | **GitHub Actions** |
 | Secrets | **Doppler** |
 | Observability | **OpenTelemetry → Grafana Cloud** |
 | Error tracking | **Sentry** |
-| Hosting (API) | **Fly.io (Phase 1-2) → AWS EKS (Phase 3)** |
-| Database hosting | **Supabase (Phase 1) → RDS (Phase 3)** |
+| Hosting (API/Web) | **Ionos VPS (2 vCPU, 2GB RAM, 80GB NVMe) Phase 1 → Fly.io Phase 2 → AWS/Azure Phase 3** |
+| Database hosting | **Supabase (Phase 1-2) → RDS (Phase 3)** |
+| Frontend hosting | **Next.js SSR on VPS behind existing reverse proxy (Phase 1) → Fly.io (Phase 2)** |
 
 ---
 

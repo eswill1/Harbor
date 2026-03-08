@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Harbor",
+    "slug": "harbor",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "harbor",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.joinharbor"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1B2A3B"
+      },
+      "package": "app.joinharbor"
+    },
+    "plugins": [
+      "expo-router",
+      "react-native-reanimated"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

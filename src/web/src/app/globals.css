@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --harbor-deep:    #1B2A3B;
+  --harbor-slate:   #2E4057;
+  --harbor-water:   #4A7FA5;
+  --harbor-seafoam: #72B8A0;
+  --harbor-sand:    #F0E6D3;
+  --harbor-mist:    #F7F4EF;
+  --harbor-fog:     #E8E2D9;
+
+  --bg-base:        #F7F4EF;
+  --bg-surface:     #FFFFFF;
+  --bg-elevated:    #F0E6D3;
+  --text-primary:   #1B2A3B;
+  --text-secondary: #5A6A7A;
+  --text-muted:     #9AABB8;
+  --accent-primary: #4A7FA5;
+  --accent-success: #72B8A0;
+  --accent-caution: #C4935A;
+  --accent-civic:   #7B68A8;
+  --border:         #E8E2D9;
+  --border-strong:  #C8BFB4;
+
+  --radius-sm:  6px;
+  --radius-md:  12px;
+  --radius-lg:  18px;
+  --radius-xl:  24px;
+  --radius-full: 999px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.14);
+}
+
+[data-theme="dark"] {
+  --bg-base:        #111820;
+  --bg-surface:     #1B2A3B;
+  --bg-elevated:    #2E4057;
+  --text-primary:   #EEE8DF;
+  --text-secondary: #8FA3B1;
+  --text-muted:     #4A6070;
+  --accent-primary: #6B9FBF;
+  --border:         #2A3D50;
+  --border-strong:  #3A5060;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+}
