@@ -92,6 +92,11 @@ export default function AppLayout() {
         name="user/[id]"
         options={{ href: null }}
       />
+      {/* Shelf detail — navigated to from shelves list */}
+      <Tabs.Screen
+        name="shelf/[id]"
+        options={{ href: null }}
+      />
     </Tabs>
   )
 }

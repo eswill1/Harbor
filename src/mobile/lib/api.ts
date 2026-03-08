@@ -134,6 +134,47 @@ export const postsApi = {
     api.get<Post[]>('/api/posts/feed', token),
 }
 
+// ─── Shelves API ──────────────────────────────────────────────────────────────
+
+export interface Shelf {
+  id:         string
+  name:       string
+  created_at: string
+  item_count: number
+}
+
+export interface ShelfItem {
+  id:         string
+  content_id: string
+  saved_at:   string
+  post: {
+    id:         string
+    body:       string
+    created_at: string
+    author:     { id: string; handle: string; display_name: string }
+  }
+}
+
+export const shelvesApi = {
+  list: (token: string) =>
+    api.get<Shelf[]>('/api/shelves', token),
+
+  create: (name: string, token: string) =>
+    api.post<Shelf>('/api/shelves', { name }, token),
+
+  remove: (shelfId: string, token: string) =>
+    api.delete<{ ok: boolean }>(`/api/shelves/${shelfId}`, token),
+
+  items: (shelfId: string, token: string) =>
+    api.get<ShelfItem[]>(`/api/shelves/${shelfId}/items`, token),
+
+  saveItem: (shelfId: string, contentId: string, token: string) =>
+    api.post<{ ok: boolean }>(`/api/shelves/${shelfId}/items`, { content_id: contentId }, token),
+
+  removeItem: (shelfId: string, contentId: string, token: string) =>
+    api.delete<{ ok: boolean }>(`/api/shelves/${shelfId}/items/${contentId}`, token),
+}
+
 // ─── Users API ────────────────────────────────────────────────────────────────
 
 export interface UserProfile {
