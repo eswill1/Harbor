@@ -46,10 +46,10 @@ const BUCKET_COLORS: Record<string, string> = {
 }
 
 const BUCKET_REASONS: Record<string, string> = {
-  friends:   'You follow this person. Harbor prioritizes people you've connected with.',
-  groups:    'This came from a group you've joined. Harbor shows you what your communities are discussing.',
-  shelves:   'This matches a topic on one of your shelves. Harbor uses your shelves as your interest library.',
-  discovery: 'This is adjacent to your interests. Harbor includes a small amount of discovery to help you find new things — but it's capped.',
+  friends:   "You follow this person. Harbor prioritizes people you've connected with.",
+  groups:    "This came from a group you've joined. Harbor shows you what your communities are discussing.",
+  shelves:   "This matches a topic on one of your shelves. Harbor uses your shelves as your interest library.",
+  discovery: "This is adjacent to your interests. Harbor includes a small amount of discovery to help you find new things — but it's capped.",
 }
 
 // ─── Why This? Panel ──────────────────────────────────────────────────────────
