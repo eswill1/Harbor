@@ -27,7 +27,7 @@
 | Gestures | **React Native Gesture Handler** | Swipe navigation, long-press save |
 | Local storage | **MMKV** | Fast key-value for intent history, token cache |
 | Offline support | **WatermelonDB** | Shelves and saved items available offline |
-| Styling | **Shopify Restyle** or **NativeWind** | Token-based theming, dark mode, responsive |
+| Styling | **NativeWind** | Token-based theming, dark mode, responsive — chosen over Shopify Restyle for consistency with Tailwind web stack |
 
 ### 1.2 Web
 
@@ -833,3 +833,88 @@ Rollback means: swap `is_active` to the prior `ranking_config_versions` record. 
 - Holdout group is always maintained (5% of users on prior config)
 - Experiment results are stored against the RFC record for auditability
 - No experiment runs longer than 30 days without an explicit extension review
+
+---
+
+## 13. Repository, Licensing & Operations
+
+### 13.1 License
+
+Harbor is licensed under the **Business Source License 1.1 (BUSL-1.1)**.
+
+- Non-commercial, personal, and development/testing use is permitted freely
+- Commercial production use requires a commercial license from Ed Williams
+- Change Date: **2030-01-01** — on that date the license converts to Apache 2.0
+- Contributors grant a perpetual commercialization license per `CONTRIBUTING.md`
+
+### 13.2 Monorepo Structure
+
+```
+Harbor/
+├── src/
+│   ├── api/        — Fastify 5 + TypeScript (port 4000)
+│   ├── web/        — Next.js 15 App Router + Tailwind (port 3000 in container)
+│   ├── mobile/     — Expo 52 + React Native 0.76 + NativeWind
+│   └── ml/         — FastAPI + Python (Phase 2; stub only in Phase 1)
+├── infra/
+│   └── nginx/      — Nginx server configs (source of truth, deployed to VPS)
+├── docker-compose.yml
+├── doppler.yaml
+└── package.json    — npm workspaces root (api, web, mobile)
+```
+
+### 13.3 Port Assignments
+
+| Service | Container Port | Host Port | External URL |
+|---|---|---|---|
+| harbor-api | 4000 | 4000 (127.0.0.1 only) | https://api.dev.joinharbor.app |
+| harbor-web | 3000 | 3001 (127.0.0.1 only) | https://dev.joinharbor.app |
+| harbor-redis | 6379 | none (internal only) | — |
+| harbor-typesense | 8108 | none (internal only) | — |
+
+All host ports are bound to `127.0.0.1` — Nginx proxies external traffic, nothing is directly internet-accessible.
+
+### 13.4 Subdomain Routing
+
+API and web are on separate subdomains (not path-routed) because the mobile app calls the API directly. Path-routing would require mobile traffic to flow through the web server.
+
+| Subdomain | Target | Rationale |
+|---|---|---|
+| `dev.joinharbor.app` | harbor-web (port 3001) | Next.js SSR web app |
+| `api.dev.joinharbor.app` | harbor-api (port 4000) | Fastify API — called by web and mobile |
+
+Production will mirror this pattern: `joinharbor.app` + `api.joinharbor.app`.
+
+### 13.5 Secrets Management
+
+All secrets are managed in **Doppler** (`harbor` project).
+
+| Environment | Doppler Config | Used For |
+|---|---|---|
+| Staging (VPS) | `stg` | dev.joinharbor.app |
+| Production | `prd` | joinharbor.app (Phase 2+) |
+| Local dev | `dev` | individual developer machines |
+
+The VPS authenticates via a scoped service token. No `.env` files on any server.
+
+**Deploy command on VPS:**
+```bash
+cd /home/ed/harbor
+doppler run -- docker compose up -d
+```
+
+### 13.6 Phase 1 Deploy Pattern
+
+Until GitHub Actions CI/CD is wired up:
+
+```bash
+# From local machine
+rsync -az --delete \
+  --exclude=node_modules --exclude=.next --exclude=dist \
+  --exclude=.git --exclude=.DS_Store --exclude=.env \
+  -e "ssh -i ~/.ssh/id_ed25519" \
+  /Users/edwilliams/Projects/Harbor/ root@108.175.8.250:/home/ed/harbor/
+
+ssh -i ~/.ssh/id_ed25519 root@108.175.8.250 \
+  'cd /home/ed/harbor && docker compose build && doppler run -- docker compose up -d'
+```

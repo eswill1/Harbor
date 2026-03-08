@@ -39,3 +39,7 @@ The bet is not that people want less connection.
 The bet is that people want **better** connection — and they're starving for a place that treats their attention like something sacred, not something to harvest.
 
 Harbor is that place.
+
+## License
+
+Harbor is source-available under the [Business Source License 1.1](./LICENSE). Non-commercial and development use is free. Commercial use requires a license. The code converts to Apache 2.0 on 2030-01-01.
