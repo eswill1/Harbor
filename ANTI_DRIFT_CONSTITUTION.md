@@ -198,7 +198,44 @@ Dedicated testing for "can this be gamed into outrage loops?" before every launc
 
 ---
 
-## 9. The Prime Directive
+## 9. Messaging Privacy
+
+Harbor messaging must be private by design — not private by policy. The following constraints are non-negotiable.
+
+**End-to-end encryption**
+- All direct messages are end-to-end encrypted using an open, auditable protocol (Signal Protocol or equivalent).
+- Harbor servers relay encrypted ciphertext only. Harbor cannot read message contents.
+- Keys are generated and stored on user devices. No server-side key escrow.
+
+**Metadata minimization**
+- Harbor retains the minimum metadata necessary to route and deliver messages: sender/recipient identifiers, message timestamp, and delivery status.
+- Message content, length, media type, and read receipts are not logged server-side beyond the encrypted payload.
+- Metadata is not used as a personalization signal, not included in the ranking graph, and not surfaced in any analytics pipeline.
+
+**Forward secrecy**
+- The protocol must provide forward secrecy: compromise of a long-term key does not expose past messages.
+- Key ratcheting is implemented per message or per session.
+
+**No engagement mechanics in messaging**
+- No unread count badges on the app icon or tab bar.
+- No read receipts by default (opt-in only, both parties must agree).
+- No "is typing" indicators by default (opt-in only).
+- No message reaction counts visible to third parties.
+- Messaging does not feed any algorithm or ranking system.
+
+**User control**
+- Users can delete their copy of any conversation at any time (local delete).
+- Users can request deletion of their messages from the recipient's device (best-effort, with notice).
+- Users can disable messaging entirely from settings.
+- Blocking is immediate and does not notify the blocked party.
+
+**Auditability without content access**
+- Harbor's third-party auditors can verify that the encryption scheme is correctly implemented without accessing message content.
+- Open-source client libraries are used where possible so the encryption implementation is inspectable.
+
+---
+
+## 10. The Prime Directive
 
 If Harbor must choose between:
 
