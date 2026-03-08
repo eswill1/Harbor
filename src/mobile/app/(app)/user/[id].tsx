@@ -27,7 +27,7 @@ export default function UserProfileScreen() {
   const [following, setFollowing] = useState(false)
   const [followLoading, setFollowLoading] = useState(false)
 
-  const isOwnProfile = currentUser?.id === id
+  const isOwnProfile = !!profile && !!currentUser && profile.id === currentUser.id
 
   const loadProfile = useCallback(async () => {
     if (!id || !accessToken) return
