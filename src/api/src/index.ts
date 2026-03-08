@@ -15,6 +15,7 @@ import authenticatePlugin from './plugins/authenticate'
 import sensiblePlugin from './plugins/sensible'
 import healthRoutes from './routes/health'
 import authRoutes from './routes/auth'
+import deckRoutes from './routes/decks'
 
 const app = Fastify({
   logger: {
@@ -36,6 +37,7 @@ const start = async () => {
   // Routes
   await app.register(healthRoutes)
   await app.register(authRoutes)
+  await app.register(deckRoutes)
 
   try {
     await app.listen({ port: config.PORT, host: '0.0.0.0' })

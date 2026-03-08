@@ -89,3 +89,29 @@ export const authApi = {
       accessToken,
     ),
 }
+
+// ─── Deck API ─────────────────────────────────────────────────────────────────
+
+export interface DeckCard {
+  id:             string
+  position:       number
+  creator:        { name: string; handle: string }
+  content:        string
+  source_bucket:  'friends' | 'groups' | 'shelves' | 'discovery'
+  is_serendipity: boolean
+  arousal_band:   'low' | 'medium' | 'high'
+}
+
+export interface DeckResponse {
+  session_id: string
+  intent:     string
+  cards:      DeckCard[]
+}
+
+export const deckApi = {
+  create: (intent: string, token: string) =>
+    api.post<DeckResponse>('/api/decks', { intent }, token),
+
+  complete: (sessionId: string, satisfaction: 1 | 2 | 3, token: string) =>
+    api.post<{ ok: boolean }>(`/api/sessions/${sessionId}/complete`, { satisfaction }, token),
+}

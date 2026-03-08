@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Animated,
   Dimensions,
-  Platform,
+  Alert,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
@@ -24,6 +24,8 @@ import { router } from 'expo-router'
 import { colors, fontSize, fontFamily, space, radius, shadow, duration } from '../../constants/tokens'
 import { Button } from '../../components/ui/Button'
 import { useSessionStore, loadLastIntent, type IntentId } from '../../store/session'
+import { useAuthStore } from '../../store/auth'
+import { deckApi } from '../../lib/api'
 
 const SCREEN_WIDTH = Dimensions.get('window').width
 const CARD_GAP     = space[3]
@@ -78,8 +80,10 @@ const INTENTS = [
 
 export default function IntentSelectorScreen() {
   const insets         = useSafeAreaInsets()
-  const { lastIntent, civicOptedIn, setIntent } = useSessionStore()
+  const { lastIntent, civicOptedIn, setIntent, setDeck } = useSessionStore()
+  const accessToken    = useAuthStore((s) => s.accessToken)
   const [selected, setSelected] = useState<IntentId | null>(null)
+  const [loading, setLoading]   = useState(false)
   const fadeAnim       = useRef(new Animated.Value(0)).current
 
   // Load last intent and pre-select it
@@ -101,9 +105,18 @@ export default function IntentSelectorScreen() {
   const visibleIntents = INTENTS.filter((i) => !i.optIn || civicOptedIn)
 
   const handleStart = async () => {
-    if (!selected) return
-    await setIntent(selected)
-    router.push('/(app)/deck')
+    if (!selected || !accessToken) return
+    setLoading(true)
+    try {
+      await setIntent(selected)
+      const deck = await deckApi.create(selected, accessToken)
+      setDeck(deck.session_id, deck.cards)
+      router.push('/(app)/deck')
+    } catch {
+      Alert.alert('Error', 'Could not load your deck. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -166,6 +179,7 @@ export default function IntentSelectorScreen() {
         <Button
           label="Start Session"
           disabled={!selected}
+          loading={loading}
           onPress={handleStart}
         />
       </View>
