@@ -72,6 +72,11 @@ export default function AppLayout() {
           ),
         }}
       />
+      {/* Deck is navigated to programmatically — hidden from tab bar */}
+      <Tabs.Screen
+        name="deck"
+        options={{ href: null }}
+      />
     </Tabs>
   )
 }

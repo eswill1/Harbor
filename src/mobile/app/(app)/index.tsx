@@ -1,44 +1,265 @@
-import { View, Text, StyleSheet } from 'react-native'
+import { useState, useEffect, useRef } from 'react'
+import {
+  View,
+  Text,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Animated,
+  Dimensions,
+  Platform,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Anchor } from 'phosphor-react-native'
-import { colors, fontSize, fontFamily, space } from '../../constants/tokens'
+import {
+  Anchor,
+  Book,
+  Users,
+  PencilLine,
+  Sparkle,
+  Compass,
+  Landmark,
+} from 'phosphor-react-native'
+import { router } from 'expo-router'
 
-// Placeholder for the Intent Selector — coming in next sprint
-export default function HomeScreen() {
-  const insets = useSafeAreaInsets()
+import { colors, fontSize, fontFamily, space, radius, shadow, duration } from '../../constants/tokens'
+import { Button } from '../../components/ui/Button'
+import { useSessionStore, loadLastIntent, type IntentId } from '../../store/session'
+
+const SCREEN_WIDTH = Dimensions.get('window').width
+const CARD_GAP     = space[3]
+const H_PADDING    = space[4]
+const CARD_WIDTH   = (SCREEN_WIDTH - H_PADDING * 2 - CARD_GAP) / 2
+
+const INTENTS = [
+  {
+    id:          'catch_up' as IntentId,
+    label:       'Catch Up',
+    description: 'Friends, updates, what you missed',
+    Icon:        Anchor,
+  },
+  {
+    id:          'learn' as IntentId,
+    label:       'Learn',
+    description: 'Guides, explainers, long reads',
+    Icon:        Book,
+  },
+  {
+    id:          'connect' as IntentId,
+    label:       'Connect',
+    description: 'Communities, events, conversations',
+    Icon:        Users,
+  },
+  {
+    id:          'create' as IntentId,
+    label:       'Create',
+    description: 'Collabs, prompts, get feedback',
+    Icon:        PencilLine,
+  },
+  {
+    id:          'delight' as IntentId,
+    label:       'Delight',
+    description: 'Humor, art, something good',
+    Icon:        Sparkle,
+  },
+  {
+    id:          'explore' as IntentId,
+    label:       'Explore',
+    description: 'Find new creators and communities',
+    Icon:        Compass,
+  },
+  {
+    id:          'civic' as IntentId,
+    label:       'Civic',
+    description: 'News and civic discussion',
+    Icon:        Landmark,
+    optIn:       true,
+  },
+] as const
+
+export default function IntentSelectorScreen() {
+  const insets         = useSafeAreaInsets()
+  const { lastIntent, civicOptedIn, setIntent } = useSessionStore()
+  const [selected, setSelected] = useState<IntentId | null>(null)
+  const fadeAnim       = useRef(new Animated.Value(0)).current
+
+  // Load last intent and pre-select it
+  useEffect(() => {
+    loadLastIntent().then((last) => {
+      if (last) setSelected(last)
+    })
+  }, [])
+
+  // Fade the screen in on mount (600ms — xslow per Design Bible)
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue:         1,
+      duration:        duration.xslow,
+      useNativeDriver: true,
+    }).start()
+  }, [fadeAnim])
+
+  const visibleIntents = INTENTS.filter((i) => !i.optIn || civicOptedIn)
+
+  const handleStart = async () => {
+    if (!selected) return
+    await setIntent(selected)
+    router.push('/(app)/deck')
+  }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Anchor size={48} color={colors.light.accentPrimary} weight="regular" />
-      <Text style={styles.title}>What are you here for?</Text>
-      <Text style={styles.subtitle}>
-        Intent selector coming soon. Choose a mode and get your deck.
-      </Text>
-    </View>
+    <Animated.View style={[styles.root, { opacity: fadeAnim }]}>
+      <FlatList
+        data={visibleIntents}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingTop: insets.top + space[6] },
+        ]}
+        columnWrapperStyle={styles.row}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <Text style={styles.heading}>What are you{'\n'}here for?</Text>
+            <Text style={styles.subheading}>
+              Choose your intent. Harbor builds your deck around it.
+            </Text>
+          </View>
+        }
+        ListFooterComponent={<View style={{ height: 120 }} />}
+        renderItem={({ item }) => {
+          const isSelected = selected === item.id
+          return (
+            <Pressable
+              style={({ pressed }) => [
+                styles.card,
+                isSelected && styles.cardSelected,
+                pressed && styles.cardPressed,
+              ]}
+              onPress={() => setSelected(item.id)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: isSelected }}
+              accessibilityLabel={`${item.label}: ${item.description}`}
+            >
+              <item.Icon
+                size={32}
+                weight={isSelected ? 'fill' : 'regular'}
+                color={isSelected ? '#fff' : colors.light.accentPrimary}
+              />
+              <Text style={[styles.cardLabel, isSelected && styles.cardLabelSelected]}>
+                {item.label}
+              </Text>
+              <Text style={[styles.cardDesc, isSelected && styles.cardDescSelected]}>
+                {item.description}
+              </Text>
+            </Pressable>
+          )
+        }}
+      />
+
+      {/* Sticky CTA */}
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: insets.bottom + space[4] },
+        ]}
+      >
+        <Button
+          label="Start Session"
+          disabled={!selected}
+          onPress={handleStart}
+        />
+      </View>
+    </Animated.View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex:            1,
     backgroundColor: colors.light.bgBase,
-    alignItems:      'center',
-    justifyContent:  'center',
-    paddingHorizontal: space[8],
-    gap:             space[4],
   },
-  title: {
-    fontSize:     fontSize.xl,
-    fontFamily:   fontFamily.interBold,
+
+  listContent: {
+    paddingHorizontal: H_PADDING,
+    gap:               CARD_GAP,
+  },
+
+  row: {
+    gap: CARD_GAP,
+  },
+
+  header: {
+    marginBottom: space[6],
+    gap:          space[2],
+  },
+
+  heading: {
+    fontSize:     fontSize['2xl'],
+    fontFamily:   fontFamily.loraBold,
     color:        colors.light.textPrimary,
-    textAlign:    'center',
     letterSpacing: -0.5,
+    lineHeight:   36,
   },
-  subtitle: {
+
+  subheading: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
     color:      colors.light.textSecondary,
-    textAlign:  'center',
-    lineHeight: 24,
+    lineHeight: 22,
+  },
+
+  card: {
+    width:           CARD_WIDTH,
+    backgroundColor: colors.light.bgSurface,
+    borderRadius:    radius.xl,
+    borderWidth:     1.5,
+    borderColor:     colors.light.border,
+    padding:         space[4],
+    gap:             space[2],
+    ...shadow.sm,
+  },
+
+  cardSelected: {
+    backgroundColor: colors.light.accentPrimary,
+    borderColor:     colors.light.accentPrimary,
+    transform:       [{ scale: 1.02 }],
+  },
+
+  cardPressed: {
+    opacity: 0.85,
+  },
+
+  cardLabel: {
+    fontSize:   fontSize.md,
+    fontFamily: fontFamily.interBold,
+    color:      colors.light.textPrimary,
+    letterSpacing: -0.2,
+  },
+
+  cardLabelSelected: {
+    color: '#fff',
+  },
+
+  cardDesc: {
+    fontSize:   fontSize.sm,
+    fontFamily: fontFamily.inter,
+    color:      colors.light.textSecondary,
+    lineHeight: 18,
+  },
+
+  cardDescSelected: {
+    color: 'rgba(255,255,255,0.8)',
+  },
+
+  footer: {
+    position:        'absolute',
+    bottom:          0,
+    left:            0,
+    right:           0,
+    paddingHorizontal: H_PADDING,
+    paddingTop:      space[4],
+    backgroundColor: colors.light.bgBase,
+    borderTopWidth:  1,
+    borderTopColor:  colors.light.border,
   },
 })
