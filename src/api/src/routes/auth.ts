@@ -126,8 +126,9 @@ export default async (app: FastifyInstance) => {
       handle: string
       display_name: string
       password_hash: string
+      role: 'user' | 'admin'
     }>(
-      'SELECT id, handle, display_name, password_hash FROM users WHERE email = $1',
+      'SELECT id, handle, display_name, password_hash, role FROM users WHERE email = $1',
       [email],
     )
 
@@ -141,7 +142,7 @@ export default async (app: FastifyInstance) => {
       return reply.unauthorized('Invalid email or password')
     }
 
-    const tokens = await issueTokenPair(app, reply, user.id)
+    const tokens = await issueTokenPair(app, reply, user.id, user.role)
 
     return {
       ...tokens,
@@ -186,7 +187,12 @@ export default async (app: FastifyInstance) => {
       [stored.id],
     )
 
-    const tokens = await issueTokenPair(app, reply, stored.user_id)
+    const { rows: userRows } = await app.db.query<{ role: 'user' | 'admin' }>(
+      'SELECT role FROM users WHERE id = $1',
+      [stored.user_id],
+    )
+
+    const tokens = await issueTokenPair(app, reply, stored.user_id, userRows[0]?.role ?? 'user')
     return tokens
   })
 
