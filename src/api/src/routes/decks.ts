@@ -411,6 +411,10 @@ export default async function deckRoutes(app: FastifyInstance) {
       cards = buildStubDeck(intent)
     }
 
+    // DEV: force position 5 (index 4) to high-arousal so friction UI is testable
+    // without needing ML-scored content. Remove before Phase 2 arousal classifier ships.
+    if (cards.length > 4) cards[4] = { ...cards[4], arousal_band: 'high' }
+
     return reply.send({ session_id, intent, cards })
   })
 
