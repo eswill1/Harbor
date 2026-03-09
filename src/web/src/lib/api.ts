@@ -114,6 +114,13 @@ export const deckApi = {
     api.post<{ ok: boolean }>(`/api/sessions/${sessionId}/complete`, { satisfaction }, token),
 }
 
+// ─── Share API ────────────────────────────────────────────────────────────────
+
+export const shareApi = {
+  log: (contentId: string, shareType: 'friend' | 'group' | 'copy_link', token: string) =>
+    api.post<{ ok: boolean }>(`/api/posts/${contentId}/share`, { share_type: shareType }, token),
+}
+
 // ─── Posts API ────────────────────────────────────────────────────────────────
 
 export interface Post {

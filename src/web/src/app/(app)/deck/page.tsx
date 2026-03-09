@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
-import { deckApi, shelvesApi, ApiError, type DeckCard } from '../../../lib/api'
+import { deckApi, shelvesApi, shareApi, type DeckCard } from '../../../lib/api'
 import { useAuthStore } from '../../../store/auth'
 import { useSessionStore } from '../../../store/session'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -146,6 +146,137 @@ function SavePanel({ card, onClose }: { card: DeckCard; onClose: () => void }) {
   )
 }
 
+// ─── Share panel ──────────────────────────────────────────────────────────────
+
+const POST_BASE_URL = 'https://dev.joinharbor.app/posts'
+const STUB_ID       = '00000000-0000-0000-0000-000000000000'
+
+function SharePanel({ card, onClose }: { card: DeckCard; onClose: () => void }) {
+  const { accessToken } = useAuthStore()
+  const isHighArousal   = card.arousal_band === 'high'
+  const isStub          = card.id === STUB_ID
+
+  const [frozenSecs, setFrozenSecs] = useState(isHighArousal ? 3 : 0)
+  const [copied, setCopied]         = useState(false)
+
+  useEffect(() => {
+    setFrozenSecs(isHighArousal ? 3 : 0)
+    setCopied(false)
+  }, [card.id, isHighArousal])
+
+  useEffect(() => {
+    if (frozenSecs <= 0) return
+    const t = setTimeout(() => setFrozenSecs((s) => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [frozenSecs])
+
+  const logShare = (type: 'friend' | 'group' | 'copy_link') => {
+    if (isStub || !accessToken) return
+    shareApi.log(card.id, type, accessToken).catch(() => {})
+  }
+
+  const frozen = frozenSecs > 0
+
+  const options = [
+    {
+      label:    'Share with a friend',
+      sub:      'Direct messaging — coming soon',
+      isStub:   true,
+      onClick:  () => { logShare('friend'); onClose() },
+    },
+    {
+      label:    'Share to a group',
+      sub:      'Group sharing — coming soon',
+      isStub:   true,
+      onClick:  () => { logShare('group'); onClose() },
+    },
+    {
+      label:    copied ? 'Link copied!' : 'Copy link',
+      sub:      'Share anywhere',
+      isStub:   false,
+      onClick:  async () => {
+        logShare('copy_link')
+        try {
+          await navigator.clipboard.writeText(`${POST_BASE_URL}/${card.id}`)
+          setCopied(true)
+          setTimeout(onClose, 900)
+        } catch {
+          onClose()
+        }
+      },
+    },
+  ]
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
+         style={{ background: 'rgba(0,0,0,0.5)' }}
+         onClick={onClose}>
+      <div className="w-full max-w-md rounded-t-2xl md:rounded-2xl p-6 flex flex-col gap-4"
+           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+           onClick={(e) => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>
+            Share
+          </h2>
+          <button onClick={onClose} style={{ color: 'var(--text-muted)' }}>
+            <svg width="20" height="20" viewBox="0 0 256 256">
+              <line x1="200" y1="56" x2="56" y2="200" stroke="currentColor" strokeWidth="16" strokeLinecap="round"/>
+              <line x1="56" y1="56" x2="200" y2="200" stroke="currentColor" strokeWidth="16" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* High-arousal friction */}
+        {isHighArousal && (
+          <div className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"
+               style={{ background: 'rgba(196,147,90,0.1)', color: 'var(--accent-caution)' }}>
+            <span>This is getting strong reactions — read before sharing.</span>
+            {frozen && (
+              <span className="font-bold text-base w-6 text-center flex-shrink-0">{frozenSecs}</span>
+            )}
+          </div>
+        )}
+
+        {/* Options */}
+        <div className="flex flex-col gap-2">
+          {options.map(({ label, sub, isStub: optionIsStub, onClick }) => {
+            const disabled = frozen || optionIsStub
+            return (
+              <button
+                key={label}
+                onClick={disabled ? undefined : onClick}
+                className="flex items-center justify-between w-full rounded-xl px-4 py-3 text-left transition-opacity"
+                style={{
+                  background: 'var(--bg-elevated)',
+                  border:     '1px solid var(--border)',
+                  opacity:    disabled ? 0.45 : 1,
+                  cursor:     disabled ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <div>
+                  <div className="text-sm font-medium" style={{ color: optionIsStub ? 'var(--text-muted)' : 'var(--text-primary)' }}>
+                    {label}
+                  </div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {sub}
+                  </div>
+                </div>
+                {frozen && !optionIsStub && (
+                  <span className="text-xs flex-shrink-0" style={{ color: 'var(--accent-caution)' }}>
+                    wait {frozenSecs}s
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Deck completion screen ────────────────────────────────────────────────────
 
 function DeckComplete({
@@ -239,6 +370,7 @@ export default function DeckPage() {
   const { currentIntent, sessionId, cards, cardIndex, advanceCard, retreatCard, setDeck } = useSessionStore()
   const [showWhy, setShowWhy]        = useState(false)
   const [showSave, setShowSave]      = useState(false)
+  const [showShare, setShowShare]    = useState(false)
 
   const { mutate: loadNewDeck, isPending: loadingDeck } = useMutation({
     mutationFn: () => {
@@ -281,8 +413,9 @@ export default function DeckPage() {
 
   return (
     <>
-      {showWhy  && <WhyThisPanel card={card} onClose={() => setShowWhy(false)} />}
-      {showSave && <SavePanel    card={card} onClose={() => setShowSave(false)} />}
+      {showWhy   && <WhyThisPanel card={card} onClose={() => setShowWhy(false)} />}
+      {showSave  && <SavePanel    card={card} onClose={() => setShowSave(false)} />}
+      {showShare && <SharePanel   card={card} onClose={() => setShowShare(false)} />}
 
       <div className="max-w-xl mx-auto px-4 py-6">
         {/* Progress bar + intent label */}
@@ -369,6 +502,18 @@ export default function DeckPage() {
                         stroke="currentColor" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 Save
+              </button>
+              <button onClick={() => setShowShare(true)}
+                      className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
+                      style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>
+                <svg width="14" height="14" viewBox="0 0 256 256" fill="none">
+                  <circle cx="168" cy="48" r="24" stroke="currentColor" strokeWidth="16"/>
+                  <circle cx="40"  cy="128" r="24" stroke="currentColor" strokeWidth="16"/>
+                  <circle cx="168" cy="208" r="24" stroke="currentColor" strokeWidth="16"/>
+                  <line x1="63.45" y1="115.82" x2="144.55" y2="60.18" stroke="currentColor" strokeWidth="16" strokeLinecap="round"/>
+                  <line x1="63.45" y1="140.18" x2="144.55" y2="195.82" stroke="currentColor" strokeWidth="16" strokeLinecap="round"/>
+                </svg>
+                Share
               </button>
             </div>
             <button onClick={() => setShowWhy(true)}

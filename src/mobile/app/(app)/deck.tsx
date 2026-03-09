@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
   Modal,
+  Share,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
@@ -27,7 +28,7 @@ import { router } from 'expo-router'
 import { colors, fontSize, fontFamily, space, radius, shadow } from '../../constants/tokens'
 import { useSessionStore } from '../../store/session'
 import { useAuthStore } from '../../store/auth'
-import { deckApi, shelvesApi } from '../../lib/api'
+import { deckApi, shelvesApi, shareApi } from '../../lib/api'
 import { useTheme } from '../../hooks/useTheme'
 
 // ─── Source bucket labels ─────────────────────────────────────────────────────
@@ -147,6 +148,140 @@ function WhyThisPanel({
   )
 }
 
+// ─── Share Panel ──────────────────────────────────────────────────────────────
+
+const POST_BASE_URL = 'https://dev.joinharbor.app/posts'
+
+function SharePanel({
+  card,
+  visible,
+  onClose,
+  accessToken,
+  theme,
+}: {
+  card:        { id: string; arousal_band: 'low' | 'medium' | 'high' } | null
+  visible:     boolean
+  onClose:     () => void
+  accessToken: string | null
+  theme:       typeof colors.light
+}) {
+  const insets  = useSafeAreaInsets()
+  const styles  = useMemo(() => makeStyles(theme), [theme])
+  const isHighArousal = card?.arousal_band === 'high'
+
+  // Countdown: 3 seconds for high-arousal, 0 for everything else
+  const [frozenSecs, setFrozenSecs] = useState(0)
+
+  useEffect(() => {
+    if (visible) setFrozenSecs(isHighArousal ? 3 : 0)
+  }, [visible, isHighArousal])
+
+  useEffect(() => {
+    if (frozenSecs <= 0) return
+    const t = setTimeout(() => setFrozenSecs((s) => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [frozenSecs])
+
+  const isStub = !card || card.id === '00000000-0000-0000-0000-000000000000'
+  const frozen = frozenSecs > 0
+
+  const logShare = (type: 'friend' | 'group' | 'copy_link') => {
+    if (!card || isStub || !accessToken) return
+    shareApi.log(card.id, type, accessToken).catch(() => {})
+  }
+
+  const handleFriend = () => {
+    logShare('friend')
+    onClose()
+    Alert.alert('Coming soon', 'Direct messaging will be available in a future update.')
+  }
+
+  const handleGroup = () => {
+    logShare('group')
+    onClose()
+    Alert.alert('Coming soon', 'Group sharing will be available in a future update.')
+  }
+
+  const handleCopyLink = async () => {
+    if (!card) return
+    logShare('copy_link')
+    try {
+      await Share.share({ message: `${POST_BASE_URL}/${card.id}` })
+    } catch {
+      // User dismissed — no action needed
+    }
+    onClose()
+  }
+
+  if (!card) return null
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.modalBackdrop} onPress={onClose} />
+      <View style={[styles.modalSheet, { paddingBottom: insets.bottom + space[6] }]}>
+
+        {/* Handle + title */}
+        <View style={styles.modalHeader}>
+          <View style={styles.modalHandleBar} />
+          <View style={styles.modalTitleRow}>
+            <ShareNetwork size={18} color={theme.textPrimary} weight="bold" />
+            <Text style={styles.modalTitle}>Share</Text>
+            <Pressable onPress={onClose} style={styles.modalCloseBtn} hitSlop={12}>
+              <X size={18} color={theme.textMuted} weight="bold" />
+            </Pressable>
+          </View>
+        </View>
+
+        {/* High-arousal friction message + countdown */}
+        {isHighArousal && (
+          <View style={[styles.shareArousalBanner]}>
+            <Text style={styles.shareArousalText}>
+              This is getting strong reactions — read before sharing.
+            </Text>
+            {frozen && (
+              <View style={styles.shareCountdownBadge}>
+                <Text style={styles.shareCountdownText}>{frozenSecs}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Share options */}
+        <View style={styles.shareOptions}>
+          {[
+            { label: 'Share with a friend', sub: 'Direct message — coming soon', onPress: handleFriend,    isStub: true },
+            { label: 'Share to a group',    sub: 'Group sharing — coming soon',  onPress: handleGroup,     isStub: true },
+            { label: 'Copy link',           sub: 'Share anywhere',               onPress: handleCopyLink,  isStub: false },
+          ].map(({ label, sub, onPress, isStub: optionIsStub }) => (
+            <Pressable
+              key={label}
+              style={[styles.shareOption, (frozen || optionIsStub) && styles.shareOptionDisabled]}
+              onPress={frozen || optionIsStub ? undefined : onPress}
+            >
+              <View style={styles.shareOptionText}>
+                <Text style={[styles.shareOptionLabel, (frozen || optionIsStub) && { color: theme.textMuted }]}>
+                  {label}
+                </Text>
+                <Text style={styles.shareOptionSub}>{sub}</Text>
+              </View>
+              {frozen && !optionIsStub && (
+                <Text style={[styles.shareOptionSub, { color: theme.accentCaution }]}>
+                  wait {frozenSecs}s
+                </Text>
+              )}
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    </Modal>
+  )
+}
+
 // ─── Completion screen ────────────────────────────────────────────────────────
 
 function CompletionScreen({ onNewDeck, onChangeIntent, theme }: {
@@ -244,6 +379,7 @@ export default function DeckScreen() {
   const [reloading, setReloading]       = useState(false)
   const [saving, setSaving]             = useState(false)
   const [showWhyThis, setShowWhyThis]   = useState(false)
+  const [showShare, setShowShare]       = useState(false)
   const theme  = useTheme()
   const styles = useMemo(() => makeStyles(theme), [theme])
 
@@ -391,7 +527,7 @@ export default function DeckScreen() {
             <ChatCircle size={20} color={theme.textSecondary} weight="regular" />
             <Text style={styles.actionLabel}>Reply</Text>
           </Pressable>
-          <Pressable style={styles.actionBtn}>
+          <Pressable style={styles.actionBtn} onPress={() => setShowShare(true)}>
             <ShareNetwork size={20} color={theme.textSecondary} weight="regular" />
             <Text style={styles.actionLabel}>Share</Text>
           </Pressable>
@@ -403,6 +539,15 @@ export default function DeckScreen() {
         card={card}
         visible={showWhyThis}
         onClose={() => setShowWhyThis(false)}
+        theme={theme}
+      />
+
+      {/* ── Share panel ── */}
+      <SharePanel
+        card={card}
+        visible={showShare}
+        onClose={() => setShowShare(false)}
+        accessToken={accessToken}
         theme={theme}
       />
 
@@ -770,6 +915,68 @@ const makeStyles = (c: typeof colors.light) => StyleSheet.create({
     color:      c.textMuted,
     lineHeight: 19,
     paddingBottom: space[2],
+  },
+
+  // Share panel
+  shareArousalBanner: {
+    flexDirection:     'row',
+    alignItems:        'center',
+    justifyContent:    'space-between',
+    backgroundColor:   c.accentCaution + '18',
+    borderRadius:      radius.md,
+    paddingVertical:   space[3],
+    paddingHorizontal: space[4],
+    gap:               space[3],
+  },
+  shareArousalText: {
+    flex:       1,
+    fontSize:   fontSize.sm,
+    fontFamily: fontFamily.inter,
+    color:      c.accentCaution,
+    lineHeight: 19,
+  },
+  shareCountdownBadge: {
+    width:           28,
+    height:          28,
+    borderRadius:    14,
+    backgroundColor: c.accentCaution,
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+  shareCountdownText: {
+    fontSize:   fontSize.sm,
+    fontFamily: fontFamily.interBold,
+    color:      '#fff',
+  },
+  shareOptions: {
+    gap: space[2],
+  },
+  shareOption: {
+    flexDirection:   'row',
+    alignItems:      'center',
+    justifyContent:  'space-between',
+    paddingVertical:   space[4],
+    paddingHorizontal: space[4],
+    borderRadius:    radius.md,
+    backgroundColor: c.bgElevated,
+    borderWidth:     1,
+    borderColor:     c.border,
+  },
+  shareOptionDisabled: {
+    opacity: 0.5,
+  },
+  shareOptionText: {
+    gap: 2,
+  },
+  shareOptionLabel: {
+    fontSize:   fontSize.base,
+    fontFamily: fontFamily.interMedium,
+    color:      c.textPrimary,
+  },
+  shareOptionSub: {
+    fontSize:   fontSize.xs,
+    fontFamily: fontFamily.inter,
+    color:      c.textMuted,
   },
 
   // Empty state
