@@ -1,3 +1,5 @@
+import { getAuthStore } from '../store/auth'
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.dev.joinharbor.app'
 
 export class ApiError extends Error {
@@ -12,31 +14,61 @@ export class ApiError extends Error {
 
 type Method = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
 
+// One in-flight refresh promise shared across concurrent requests so we don't
+// fire multiple /auth/refresh calls when several requests 401 simultaneously.
+let refreshPromise: Promise<string> | null = null
+
+async function doRefresh(): Promise<string> {
+  const { refreshToken, setTokens, clearAuth } = getAuthStore()
+  if (!refreshToken) {
+    clearAuth()
+    throw new ApiError(401, 'No refresh token')
+  }
+  const res = await fetch(`${BASE_URL}/auth/refresh`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ refresh_token: refreshToken }),
+  })
+  if (!res.ok) {
+    clearAuth()
+    throw new ApiError(401, 'Session expired')
+  }
+  const { access_token, refresh_token } = await res.json()
+  setTokens(access_token, refresh_token)
+  return access_token
+}
+
 async function request<T>(
   method: Method,
   path: string,
   options: { body?: unknown; token?: string } = {},
 ): Promise<T> {
-  const headers: Record<string, string> = {}
-  if (options.body !== undefined) {
-    headers['Content-Type'] = 'application/json'
-  }
-  if (options.token) {
-    headers['Authorization'] = `Bearer ${options.token}`
+  const doFetch = (token?: string) => {
+    const headers: Record<string, string> = {}
+    if (options.body !== undefined) headers['Content-Type'] = 'application/json'
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    return fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    })
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-  })
+  let res = await doFetch(options.token)
+
+  // On 401, attempt a single token refresh then retry.
+  if (res.status === 401 && options.token) {
+    try {
+      if (!refreshPromise) refreshPromise = doRefresh().finally(() => { refreshPromise = null })
+      const newToken = await refreshPromise
+      res = await doFetch(newToken)
+    } catch {
+      throw new ApiError(401, 'Session expired — please sign in again')
+    }
+  }
 
   const data = await res.json().catch(() => ({}))
-
-  if (!res.ok) {
-    throw new ApiError(res.status, data?.message ?? 'Request failed')
-  }
-
+  if (!res.ok) throw new ApiError(res.status, data?.message ?? 'Request failed')
   return data as T
 }
 
@@ -112,6 +144,13 @@ export const deckApi = {
 
   complete: (sessionId: string, satisfaction: 1 | 2 | 3, token: string) =>
     api.post<{ ok: boolean }>(`/api/sessions/${sessionId}/complete`, { satisfaction }, token),
+}
+
+// ─── Share API ────────────────────────────────────────────────────────────────
+
+export const shareApi = {
+  log: (contentId: string, shareType: 'friend' | 'group' | 'copy_link', token: string) =>
+    api.post<{ ok: boolean }>(`/api/posts/${contentId}/share`, { share_type: shareType }, token),
 }
 
 // ─── Posts API ────────────────────────────────────────────────────────────────

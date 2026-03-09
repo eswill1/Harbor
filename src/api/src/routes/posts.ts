@@ -65,6 +65,37 @@ export default async function postRoutes(app: FastifyInstance) {
     }
   })
 
+  // POST /api/posts/:id/share — log a share event (friction pipeline entry point)
+  app.post('/api/posts/:id/share', {
+    preHandler: [app.authenticate],
+  }, async (request, reply) => {
+    const { id }   = request.params as { id: string }
+    const body     = request.body as Record<string, unknown>
+    const shareType = body?.share_type
+
+    if (!['friend', 'group', 'copy_link'].includes(shareType as string)) {
+      return reply.badRequest('share_type must be friend, group, or copy_link')
+    }
+
+    const { userId } = request.user
+
+    // Verify the content exists
+    const { rowCount } = await app.db.query(
+      `SELECT 1 FROM content WHERE id = $1 AND content_type = 'post'`,
+      [id],
+    )
+    if (!rowCount) return reply.notFound('Post not found')
+
+    // Log as a user signal (share events feed into Phase 2 metrics)
+    await app.db.query(
+      `INSERT INTO user_signals (user_id, signal_type, content_id)
+       VALUES ($1, $2, $3)`,
+      [userId, `share_${shareType}`, id],
+    )
+
+    return { ok: true }
+  })
+
   // GET /api/posts/feed — latest 50 posts, newest first, joined with users
   app.get('/api/posts/feed', {
     preHandler: [app.authenticate],

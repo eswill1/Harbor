@@ -233,6 +233,13 @@ export const moderationApi = {
   ) => api.post<{ ok: boolean }>('/api/moderation/reports', body, token),
 }
 
+// ─── Share API ────────────────────────────────────────────────────────────────
+
+export const shareApi = {
+  log: (contentId: string, shareType: 'friend' | 'group' | 'copy_link', token: string) =>
+    api.post<{ ok: boolean }>(`/api/posts/${contentId}/share`, { share_type: shareType }, token),
+}
+
 // ─── Feed API ─────────────────────────────────────────────────────────────────
 
 export interface FeedPost {

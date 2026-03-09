@@ -234,6 +234,8 @@ function buildStubDeck(intent: IntentId): StubCard[] {
     'discovery',
   ] as SourceBucket[])
 
+  // Position 5 (index 4) is always high-arousal so the friction UI is testable
+  // in development decks. Real content uses computed arousal_score from the DB.
   return Array.from({ length: 20 }, (_, i) => ({
     id:             crypto.randomUUID(),
     position:       i + 1,
@@ -241,7 +243,7 @@ function buildStubDeck(intent: IntentId): StubCard[] {
     content:        contentPool[i % contentPool.length],
     source_bucket:  bucketPool[i % bucketPool.length],
     is_serendipity: bucketPool[i % bucketPool.length] === 'discovery',
-    arousal_band:   'low' as ArousalBand,
+    arousal_band:   (i === 4 ? 'high' : 'low') as ArousalBand,
   }))
 }
 
@@ -408,6 +410,10 @@ export default async function deckRoutes(app: FastifyInstance) {
     } else {
       cards = buildStubDeck(intent)
     }
+
+    // DEV: force position 5 (index 4) to high-arousal so friction UI is testable
+    // without needing ML-scored content. Remove before Phase 2 arousal classifier ships.
+    if (cards.length > 4) cards[4] = { ...cards[4], arousal_band: 'high' }
 
     return reply.send({ session_id, intent, cards })
   })

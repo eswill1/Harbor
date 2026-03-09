@@ -21,6 +21,10 @@ interface AuthState {
   setHydrated:   () => void
 }
 
+// getAuthStore() allows non-component code (e.g. the API client) to read/write
+// auth state without violating the rules-of-hooks.
+export const getAuthStore = () => useAuthStore.getState()
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({

@@ -1,5 +1,5 @@
 # Harbor Design Bible
-### Version 1.2 — Aligned with Constitution v0.2 (includes Perspective §11), Metrics Standard, and Ranking Spec
+### Version 1.3 — Adds Broadcast Pause pattern (§3.13) + in-feed salience anti-patterns (§7, §10)
 
 ---
 
@@ -385,7 +385,7 @@ A visually and structurally separate environment for political/civic content.
 **Content requirements in Civic Lane:**
 - Every item labeled: Opinion / Reporting / First-hand / Satire — visible on the card face, not just in a panel
 - "Source context" card available on tap (not tooltip — full expandable panel); this is the full Civic Perspective Panel (see §3.12)
-- Share friction doubled — cooldown extended to 10 seconds, plus explicit confirmation step
+- Share opens the Broadcast Pause module (§3.13) with an extended variant: "Share privately" as primary, "Add a note" as secondary, "Broadcast anyway" as tertiary — no countdown timer
 - Broadcast reshare requires an additional step beyond friend/group share
 - Diversity constraint: the algorithm enforces ideological balance within a deck. This is labeled on the deck: "Showing a range of perspectives on [topic]. Adjust." User is never left to wonder why they're seeing something they don't agree with.
 - Dogpile dampening: if a thread shows rapid hostile reply velocity, distribution is automatically reduced. Users in the thread see a context prompt, not a silent cutoff.
@@ -620,6 +620,62 @@ Users who have opted into Civic Lane may set a framing lens: All / Left-leaning 
 
 ---
 
+### 3.13 Broadcast Pause Module
+
+The Broadcast Pause module replaces the legacy share panel for flagged content. It is **the only sanctioned mechanism for surfacing sharing friction** — friction must not appear on the card itself.
+
+#### Core principle
+
+**Transparency** (informing the user) is quiet and optional — in the "Why this?" panel, not on the card face.
+**Friction** (reducing harm) happens at the moment of amplification, not during browsing. A visually distinct card in the feed creates a novelty/salience signal that can increase desire for flagged content (the forbidden-fruit / reactance effect). Friction works best when it is invisible until the user takes the amplification action.
+
+#### When it triggers
+
+| Reason | Trigger condition |
+|---|---|
+| `high_arousal` | `arousal_band === 'high'` |
+| `civic_sensitive` | Civic Lane + broadcast share (future) |
+| `rapid_virality` | Velocity trigger (future) |
+
+#### Option structure (3-tier)
+
+```
+[Pause before broadcasting]
+Broadcast sharing of this type of content often increases conflict.
+Consider sharing privately or adding context.
+
+1. Share privately  ← PRIMARY (highlighted border, fast path)
+   Direct message
+
+2. Add a note       ← SECONDARY (constructive alternative)
+   Share with your own context
+   [Note input (required) + Source link input (optional)]
+   [Share with note]
+
+3. Broadcast anyway ← TERTIARY (neutral, not obstructed, no timer)
+   Share without adding context
+```
+
+#### What "Add a note" does today (v0)
+
+- Note field (≤280 chars, required to unlock Share with note)
+- Source link field (optional)
+- On submit: note + post URL + optional link are joined and shared
+- When Perspective ships, this upgrades to "Add context pack" (auto-suggests cross-coverage links)
+
+#### What is explicitly prohibited
+
+- **No amber border or colored frame on the card in-feed.** Color-coded cards become novelty signals, not friction.
+- **No countdown timer.** Countdown numbers create anticipation (slot-machine adjacent). Use a single confirmation step instead.
+- **No "strong reactions" / "trending" / "viral" copy.** This language is excitement copy, not sobering copy.
+- **No in-feed label or icon that marks a card as "special" from outside the Share flow.** Serendipity and arousal disclosures belong in the "Why this?" panel, not the card face.
+
+#### Normal (non-flagged) share flow
+
+For cards that do not meet a trigger condition, the share panel shows the standard three options (Send privately stub, Share to group stub, Copy link) with no friction message.
+
+---
+
 ## 4. Screen Architecture
 
 ### 4.1 Navigation
@@ -782,6 +838,10 @@ These are not aspirational prohibitions — they are structural constraints enfo
 | Single outlet reliability score | Collapses rater disagreement into a false Harbor-issued verdict | Reliability range label + named rater attribution; disagreement shown honestly |
 | Framing labels outside Civic Lane | Any framing label shown to non-Civic users constitutes silent political injection | All dots are uniform color outside Civic; framing labels are constitutionally gated (§11) |
 | "Harbor rates this outlet" language | Makes Harbor the arbiter of ideology or credibility | Always "raters say" / "rated by AllSides, MBFC, NewsGuard" — never "Harbor rates" |
+| In-feed visual treatment for flagged content | A colored border or warning banner on the card creates a novelty/salience signal — orienting response, forbidden-fruit effect, potential consumption uplift on the flagged content | No special styling on flagged cards in-feed. Friction lives in the Broadcast Pause module (§3.13), invisible until the Share action |
+| Countdown timer as friction | Countdown numbers trigger anticipation (slot-machine adjacent), potentially increasing desire to share after the wait | Single neutral confirmation step. "Broadcast anyway" button with sobering copy — no timer |
+| "Strong reactions" / "viral" / "trending" copy in friction UI | This is excitement copy, not sobering copy. It signals the content is hot, increasing the draw | "Broadcast sharing of this type of content often increases conflict. Consider sharing privately or adding context." |
+| Friction-only share UI with no constructive alternative | Obstruction without an alternative is a scold. Users either comply reflexively (confirm reflex) or bounce | Always offer a constructive alternative (Share privately, Add a note) before "Broadcast anyway" |
 
 ---
 
@@ -867,3 +927,4 @@ Platform implementations:
 8. **The baseline is always there.** Every ranked surface has a chronological fallback. It cannot be removed.
 9. **Serve all four needs honestly.** Belonging, Usefulness, Identity, and Delight — not one weaponized at the expense of the others.
 10. **Drift has a design smell.** If a proposed UI makes staying easier than leaving, it's wrong. Review it.
+11. **Friction is invisible until it matters.** Safety cues on the card face create novelty signals. Friction belongs at the amplification moment, not the browsing moment. Transparency belongs in "Why this?" — never on the card.

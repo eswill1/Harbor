@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   ScrollView,
   Alert,
   Modal,
+  Share,
+  TextInput,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
@@ -27,7 +29,7 @@ import { router } from 'expo-router'
 import { colors, fontSize, fontFamily, space, radius, shadow } from '../../constants/tokens'
 import { useSessionStore } from '../../store/session'
 import { useAuthStore } from '../../store/auth'
-import { deckApi, shelvesApi } from '../../lib/api'
+import { deckApi, shelvesApi, shareApi } from '../../lib/api'
 import { useTheme } from '../../hooks/useTheme'
 
 // ─── Source bucket labels ─────────────────────────────────────────────────────
@@ -147,6 +149,187 @@ function WhyThisPanel({
   )
 }
 
+// ─── Share Panel ──────────────────────────────────────────────────────────────
+
+const POST_BASE_URL = 'https://dev.joinharbor.app/posts'
+
+// Broadcast Pause: shown for high-arousal cards. Friction lives here, not on the card.
+// reason is forward-compatible — currently only 'high_arousal' triggers the pause flow.
+function SharePanel({
+  card,
+  visible,
+  onClose,
+  accessToken,
+  theme,
+}: {
+  card:        { id: string; arousal_band: 'low' | 'medium' | 'high' } | null
+  visible:     boolean
+  onClose:     () => void
+  accessToken: string | null
+  theme:       typeof colors.light
+}) {
+  const insets        = useSafeAreaInsets()
+  const styles        = useMemo(() => makeStyles(theme), [theme])
+  const isHighArousal = card?.arousal_band === 'high'
+  const isStub        = !card || card.id === '00000000-0000-0000-0000-000000000000'
+
+  const [view, setView]         = useState<'options' | 'add_note'>('options')
+  const [note, setNote]         = useState('')
+  const [noteLink, setNoteLink] = useState('')
+
+  useEffect(() => {
+    if (visible) { setView('options'); setNote(''); setNoteLink('') }
+  }, [visible])
+
+  const logShare = (type: 'friend' | 'group' | 'copy_link') => {
+    if (!card || isStub || !accessToken) return
+    shareApi.log(card.id, type, accessToken).catch(() => {})
+  }
+
+  const handleBroadcast = async () => {
+    if (!card) return
+    logShare('copy_link')
+    try { await Share.share({ message: `${POST_BASE_URL}/${card.id}` }) } catch {}
+    onClose()
+  }
+
+  const handleShareWithNote = async () => {
+    if (!card) return
+    logShare('copy_link')
+    const parts = [note.trim(), `${POST_BASE_URL}/${card.id}`, noteLink.trim()].filter(Boolean)
+    try { await Share.share({ message: parts.join('\n\n') }) } catch {}
+    onClose()
+  }
+
+  if (!card) return null
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.modalBackdrop} onPress={onClose} />
+      <View style={[styles.modalSheet, { paddingBottom: insets.bottom + space[6] }]}>
+
+        {/* Handle + title */}
+        <View style={styles.modalHeader}>
+          <View style={styles.modalHandleBar} />
+          <View style={styles.modalTitleRow}>
+            {view === 'add_note' ? (
+              <Pressable onPress={() => setView('options')} hitSlop={12}>
+                <ArrowLeft size={18} color={theme.textPrimary} weight="bold" />
+              </Pressable>
+            ) : (
+              <ShareNetwork size={18} color={theme.textPrimary} weight="bold" />
+            )}
+            <Text style={styles.modalTitle}>
+              {view === 'add_note' ? 'Add a note' : 'Share'}
+            </Text>
+            <Pressable onPress={onClose} style={styles.modalCloseBtn} hitSlop={12}>
+              <X size={18} color={theme.textMuted} weight="bold" />
+            </Pressable>
+          </View>
+        </View>
+
+        {view === 'options' ? (
+          isHighArousal ? (
+            // Broadcast Pause flow
+            <>
+              <View style={styles.broadcastPauseBox}>
+                <Text style={styles.broadcastPauseHeadline}>Pause before broadcasting</Text>
+                <Text style={styles.broadcastPauseBody}>
+                  Broadcast sharing of this type of content often increases conflict. Consider sharing privately or adding context.
+                </Text>
+              </View>
+              <View style={styles.shareOptions}>
+                <Pressable
+                  style={[styles.shareOption, styles.shareOptionPrimary]}
+                  onPress={() => {
+                    logShare('friend')
+                    onClose()
+                    Alert.alert('Coming soon', 'Direct messaging will be available in a future update.')
+                  }}
+                >
+                  <View style={styles.shareOptionText}>
+                    <Text style={[styles.shareOptionLabel, { color: theme.accentPrimary }]}>Share privately</Text>
+                    <Text style={styles.shareOptionSub}>Direct message — coming soon</Text>
+                  </View>
+                </Pressable>
+                <Pressable style={styles.shareOption} onPress={() => setView('add_note')}>
+                  <View style={styles.shareOptionText}>
+                    <Text style={styles.shareOptionLabel}>Add a note</Text>
+                    <Text style={styles.shareOptionSub}>Share with your own context</Text>
+                  </View>
+                </Pressable>
+                <Pressable
+                  style={[styles.shareOption, isStub && styles.shareOptionDisabled]}
+                  onPress={isStub ? undefined : handleBroadcast}
+                >
+                  <View style={styles.shareOptionText}>
+                    <Text style={[styles.shareOptionLabel, { color: theme.textMuted }]}>Broadcast anyway</Text>
+                    <Text style={styles.shareOptionSub}>Share without adding context</Text>
+                  </View>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            // Normal share flow
+            <View style={styles.shareOptions}>
+              {[
+                { label: 'Share with a friend', sub: 'Direct message — coming soon', disabled: true,  onPress: () => { logShare('friend'); onClose(); Alert.alert('Coming soon', 'Direct messaging will be available in a future update.') } },
+                { label: 'Share to a group',    sub: 'Group sharing — coming soon',  disabled: true,  onPress: () => { logShare('group');  onClose(); Alert.alert('Coming soon', 'Group sharing will be available in a future update.') } },
+                { label: 'Copy link',           sub: 'Share anywhere',               disabled: false, onPress: handleBroadcast },
+              ].map(({ label, sub, disabled, onPress }) => (
+                <Pressable
+                  key={label}
+                  style={[styles.shareOption, disabled && styles.shareOptionDisabled]}
+                  onPress={disabled ? undefined : onPress}
+                >
+                  <View style={styles.shareOptionText}>
+                    <Text style={[styles.shareOptionLabel, disabled && { color: theme.textMuted }]}>{label}</Text>
+                    <Text style={styles.shareOptionSub}>{sub}</Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          )
+        ) : (
+          // Add a note view
+          <>
+            <TextInput
+              style={[styles.noteInput, { color: theme.textPrimary, borderColor: theme.border }]}
+              placeholder="What's your take on this?"
+              placeholderTextColor={theme.textMuted}
+              value={note}
+              onChangeText={setNote}
+              multiline
+              maxLength={280}
+              autoFocus
+            />
+            <TextInput
+              style={[styles.noteLinkInput, { color: theme.textPrimary, borderColor: theme.border }]}
+              placeholder="Add another source (optional)"
+              placeholderTextColor={theme.textMuted}
+              value={noteLink}
+              onChangeText={setNoteLink}
+              autoCapitalize="none"
+              keyboardType="url"
+            />
+            <Pressable
+              style={[styles.shareOption, styles.shareOptionPrimary, !note.trim() && styles.shareOptionDisabled]}
+              onPress={note.trim() ? handleShareWithNote : undefined}
+            >
+              <Text style={[styles.shareOptionLabel, { color: theme.accentPrimary }]}>Share with note</Text>
+            </Pressable>
+          </>
+        )}
+      </View>
+    </Modal>
+  )
+}
+
 // ─── Completion screen ────────────────────────────────────────────────────────
 
 function CompletionScreen({ onNewDeck, onChangeIntent, theme }: {
@@ -244,6 +427,7 @@ export default function DeckScreen() {
   const [reloading, setReloading]       = useState(false)
   const [saving, setSaving]             = useState(false)
   const [showWhyThis, setShowWhyThis]   = useState(false)
+  const [showShare, setShowShare]       = useState(false)
   const theme  = useTheme()
   const styles = useMemo(() => makeStyles(theme), [theme])
 
@@ -391,7 +575,7 @@ export default function DeckScreen() {
             <ChatCircle size={20} color={theme.textSecondary} weight="regular" />
             <Text style={styles.actionLabel}>Reply</Text>
           </Pressable>
-          <Pressable style={styles.actionBtn}>
+          <Pressable style={styles.actionBtn} onPress={() => setShowShare(true)}>
             <ShareNetwork size={20} color={theme.textSecondary} weight="regular" />
             <Text style={styles.actionLabel}>Share</Text>
           </Pressable>
@@ -403,6 +587,15 @@ export default function DeckScreen() {
         card={card}
         visible={showWhyThis}
         onClose={() => setShowWhyThis(false)}
+        theme={theme}
+      />
+
+      {/* ── Share panel ── */}
+      <SharePanel
+        card={card}
+        visible={showShare}
+        onClose={() => setShowShare(false)}
+        accessToken={accessToken}
         theme={theme}
       />
 
@@ -770,6 +963,84 @@ const makeStyles = (c: typeof colors.light) => StyleSheet.create({
     color:      c.textMuted,
     lineHeight: 19,
     paddingBottom: space[2],
+  },
+
+  // Broadcast Pause box (shown in share panel for high-arousal cards)
+  broadcastPauseBox: {
+    backgroundColor:   c.bgElevated,
+    borderRadius:      radius.md,
+    borderWidth:       1,
+    borderColor:       c.border,
+    paddingVertical:   space[3],
+    paddingHorizontal: space[4],
+    gap:               space[1],
+  },
+  broadcastPauseHeadline: {
+    fontSize:   fontSize.base,
+    fontFamily: fontFamily.interBold,
+    color:      c.textPrimary,
+  },
+  broadcastPauseBody: {
+    fontSize:   fontSize.sm,
+    fontFamily: fontFamily.inter,
+    color:      c.textSecondary,
+    lineHeight: 19,
+  },
+
+  // Share option — primary variant (highlighted border)
+  shareOptionPrimary: {
+    borderColor: c.accentPrimary,
+  },
+
+  // Add a note inputs
+  noteInput: {
+    borderWidth:       1,
+    borderRadius:      radius.md,
+    paddingVertical:   space[3],
+    paddingHorizontal: space[4],
+    fontSize:          fontSize.base,
+    fontFamily:        fontFamily.inter,
+    minHeight:         80,
+    textAlignVertical: 'top',
+  },
+  noteLinkInput: {
+    borderWidth:       1,
+    borderRadius:      radius.md,
+    paddingVertical:   space[3],
+    paddingHorizontal: space[4],
+    fontSize:          fontSize.sm,
+    fontFamily:        fontFamily.inter,
+  },
+
+  shareOptions: {
+    gap: space[2],
+  },
+  shareOption: {
+    flexDirection:   'row',
+    alignItems:      'center',
+    justifyContent:  'space-between',
+    paddingVertical:   space[4],
+    paddingHorizontal: space[4],
+    borderRadius:    radius.md,
+    backgroundColor: c.bgElevated,
+    borderWidth:     1,
+    borderColor:     c.border,
+  },
+  shareOptionDisabled: {
+    opacity: 0.5,
+  },
+  shareOptionText: {
+    gap: 2,
+  },
+  shareOptionLabel: {
+    fontSize:   fontSize.base,
+    fontFamily: fontFamily.interMedium,
+    color:      c.textPrimary,
+  },
+  shareOptionSub: {
+    fontSize:   fontSize.xs,
+    fontFamily: fontFamily.inter,
+    color:      c.textMuted,
   },
 
   // Empty state
