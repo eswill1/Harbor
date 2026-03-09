@@ -528,14 +528,14 @@ In Civic Lane decks:
 - [x] Check-in system: satisfaction prompt on deck completion (cohort sampling: Phase 2)
 - [x] Shelves: create, save, organize, inject into deck
 - [x] Follow system + user profiles _(community join: Phase 2)_
-- [ ] "Why this?" panel (rule-based explanations for P1, with source bucket label)
+- [x] "Why this?" panel (rule-based explanations — Modal bottom sheet, source bucket label + serendipity disclosure)
 - [ ] Share with friction (read-before-share, friend-first defaults, 3s cooldown on throttled)
 - [ ] Basic arousal detection (keyword-based heuristics for P1, mapped to 3-band system)
-- [ ] Moderation action + notice system (enforcement notices + appeal path) — constitutional requirement, ships in P1
+- [x] Moderation action + notice system (enforcement notices + appeal path, admin role, community guidelines, enforcement taxonomy) — constitutional requirement ✓
 - [ ] Ranking RFC tracking (internal tooling — even if no public-facing RFC yet)
 - [ ] Versioned ranking configs (for rollback)
-- [ ] Dark mode
-- [ ] React Native app (iOS + Android) _(iOS: in progress; Android: pending)_
+- [x] Dark mode (system + in-app System/Light/Dark toggle, persisted)
+- [ ] React Native app (iOS + Android) _(iOS: complete; Android: pending)_
 - [ ] Next.js web app
 
 #### Success metrics:

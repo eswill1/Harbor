@@ -17,7 +17,8 @@ export const config = {
 
   JWT_SECRET:   required('JWT_SECRET'),
 
-  CORS_ORIGIN:  optional('CORS_ORIGIN', 'http://localhost:3000'),
+  CORS_ORIGINS: optional('CORS_ORIGIN', 'http://localhost:3000')
+                  .split(',').map((s) => s.trim()),
 
   get isProduction() { return this.NODE_ENV === 'production' },
   get isDevelopment() { return this.NODE_ENV === 'development' },

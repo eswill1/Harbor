@@ -1,12 +1,21 @@
-export default function Home() {
-  return (
-    <main className="min-h-screen flex flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>
-        Harbor
-      </h1>
-      <p className="mt-2 text-lg" style={{ color: 'var(--text-secondary)' }}>
-        The feed you can finish.
-      </p>
-    </main>
-  )
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuthStore } from '../store/auth'
+
+export default function RootPage() {
+  const router = useRouter()
+  const { user, isHydrated } = useAuthStore()
+
+  useEffect(() => {
+    if (!isHydrated) return
+    if (user) {
+      router.replace('/home')
+    } else {
+      router.replace('/login')
+    }
+  }, [isHydrated, user, router])
+
+  return null
 }
