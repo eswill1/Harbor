@@ -28,7 +28,6 @@ async function request<T>(
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers,
-    credentials: 'include',
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   })
 
