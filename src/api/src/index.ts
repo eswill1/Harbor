@@ -30,7 +30,7 @@ const app = Fastify({
 
 const start = async () => {
   // Plugins
-  await app.register(cors, { origin: config.CORS_ORIGIN })
+  await app.register(cors, { origin: config.CORS_ORIGIN, credentials: true })
   await app.register(helmet)
   await app.register(rateLimit, { max: 100, timeWindow: '1 minute' })
   await app.register(dbPlugin)
