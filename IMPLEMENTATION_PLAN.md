@@ -536,7 +536,7 @@ In Civic Lane decks:
 - [ ] Versioned ranking configs (for rollback)
 - [x] Dark mode (system + in-app System/Light/Dark toggle, persisted)
 - [ ] React Native app (iOS + Android) _(iOS: complete; Android: pending)_
-- [ ] Next.js web app
+- [x] Next.js web app _(auth, intent selector, deck, baseline feed, shelves, compose, profile, user profiles, notices + appeals)_
 
 #### Success metrics:
 - Satisfied session rate > 60% (baseline)
