@@ -430,7 +430,7 @@ features = {
 ```
 0.00 – 0.33:  Low — normal content, unrestricted
 0.34 – 0.66:  Medium — monitored (tracked, not throttled)
-0.67 – 0.89:  High — throttled (amber indicator, read-before-share, ≤2 per deck, non-consecutive)
+0.67 – 0.89:  High — throttled (Broadcast Pause at share time, read-before-share, ≤2 per deck, non-consecutive; no in-feed amber indicator — see Design Bible §3.13)
 0.90+:        Excluded from standard decks (Civic Lane only with extra friction)
 ```
 
@@ -458,17 +458,16 @@ Budget levels:
 
 ```
 User taps Share
-→ Default options presented: "Share with a friend" / "Share to a group"
-→ "Share to all followers" is third option (not default)
-→ If content has arousal_score > 0.7:
-    → Show throttle indicator
-    → Require 3 seconds before share options activate
-    → Show "Did you read this?" prompt
+→ Default options presented: "Share with a friend" / "Share to a group" / "Copy link"
+→ If content has arousal_score > 0.7 (high band):
+    → Broadcast Pause module shown (Design Bible §3.13):
+        → "Share privately" (primary)
+        → "Add a note" (secondary — note + optional source link, then share)
+        → "Broadcast anyway" (tertiary — neutral confirmation, no timer)
+    → No in-feed amber indicator, no countdown timer (backfire risk — Design Bible §7)
 → If link and user has not scrolled past article fold:
-    → Show "You haven't read this yet" prompt (not blocking, just honest)
-→ If model predicts anger-sharing (high arousal + user engagement pattern):
-    → Add 10-second cooldown
-    → Show "Take a moment" message (calm, not preachy)
+    → "You haven't read this yet" prompt (not blocking, just honest)
+→ reason field is forward-compatible: high_arousal | civic_sensitive | rapid_virality | unknown
 ```
 
 ### 4.2 Virality Architecture
@@ -634,7 +633,7 @@ The single narrow exception: a user's `framing_preference` from `perspective_use
 - [x] Shelves: create, save, organize, inject into deck
 - [x] Follow system + user profiles _(community join: Phase 2)_
 - [x] "Why this?" panel (rule-based explanations — Modal bottom sheet, source bucket label + serendipity disclosure)
-- [ ] Share with friction (read-before-share, friend-first defaults, 3s cooldown on throttled)
+- [x] Share with friction (Broadcast Pause module: friend-first defaults, Add a note, Broadcast anyway — no countdown timer per Design Bible §3.13)
 - [ ] Basic arousal detection (keyword-based heuristics for P1, mapped to 3-band system)
 - [x] Moderation action + notice system (enforcement notices + appeal path, admin role, community guidelines, enforcement taxonomy) — constitutional requirement ✓
 - [ ] Ranking RFC tracking (internal tooling — even if no public-facing RFC yet)
@@ -660,7 +659,7 @@ The single narrow exception: a user's `framing_preference` from `perspective_use
 - [ ] Satisfaction model v1 (LightGBM, trained on P1 check-in data)
 - [ ] Deck engine v2 (ML-ranked, intent-specific, Stage A–F pipeline)
 - [ ] Arousal classifier v1 (fine-tuned transformer, 3-band system)
-- [ ] Throttling system with amber UI
+- [ ] Throttling system with Broadcast Pause UI (no amber in-feed indicator — Design Bible §3.13)
 - [ ] Dogpile detector + auto-dampening (Hostile Reply Rate, Unique Piler Count, Dogpile Velocity)
 - [ ] Serendipity budget (per-user configurable, intent-specific thresholds)
 - [ ] Embedding-based shelf affinity

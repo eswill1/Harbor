@@ -445,6 +445,42 @@ These are operational diagnostics. They inform data pipeline health and rater up
 
 ---
 
+## Broadcast Pause / Share Friction Metrics
+
+Share friction is a **material UI change** subject to the same rollback discipline as ranking changes. The specific risk is the **backfire effect**: a friction UI that increases desire for or engagement with flagged content rather than reducing harm.
+
+### Backfire Detection (Tier 2 — measure on every friction UI change)
+
+Evaluate against the following after any change to the Broadcast Pause module or arousal flagging logic. Measure flagged-content items vs. the same items in a pre-change baseline or holdout.
+
+| Metric | What a backfire looks like | Action threshold |
+|---|---|---|
+| **Consumption uplift on flagged items** | Views/exposures on flagged cards increase vs. non-flagged baseline — content is becoming more attractive, not just slower to share | Investigate if uplift ≥10% relative; rollback friction UI if confirmed |
+| **Share attempt rate** | Users tap Share more often on flagged items than non-flagged (even if they abandon) — the friction trigger is drawing attention | Investigate if attempt rate ≥15% above non-flagged baseline |
+| **RR delta for flagged-content sessions** | Regret Rate increases in sessions containing flagged items — flagged content is generating regret at higher rate than before friction was added | Rollback threshold: RR uplift ≥10% relative in flagged-item sessions |
+| **Hostility / dogpile velocity on threads seeded by flagged items** | Downstream threads show increased hostile reply velocity after the friction UI shipped | Flag for qualitative review; include in next friction RFC |
+
+### Effectiveness Signals (confirming friction is working)
+
+| Metric | Target direction |
+|---|---|
+| Broadcast share rate on flagged items | Should decrease vs. pre-friction baseline |
+| "Add a note" uptake | Track over time; high uptake = habit forming correctly |
+| "Share privately" uptake | Track over time; alternative path is being used |
+| RR in flagged-item sessions | Should hold steady or improve |
+
+**Important:** "Add a note" uptake must never be optimized toward — that would turn a friction alternative into an engagement feature. Track only.
+
+### Event taxonomy additions
+
+- `broadcast_pause_shown` — Broadcast Pause module was displayed
+- `broadcast_pause_share_privately` — user chose Share privately
+- `broadcast_pause_add_note` — user entered the Add a note view
+- `broadcast_pause_share_with_note` — user completed Share with note
+- `broadcast_pause_broadcast_anyway` — user chose Broadcast anyway
+
+---
+
 ## Rollback Triggers
 
 ### Immediate Rollback (same day)

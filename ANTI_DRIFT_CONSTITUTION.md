@@ -84,7 +84,7 @@ These are seatbelts that cannot be bypassed by growth pressure.
 - Discovery must be adjacent to explicit interests. No shock funnel.
 
 **Anti-mob amplification**
-- Rapid viral spread is slowed by design: friction for broadcast reshares, read-before-share for links, cooldowns when anger-sharing is predicted.
+- Rapid viral spread is slowed by design: friction for broadcast reshares, read-before-share for links. Friction is a neutral confirmation step at the amplification moment — not a countdown timer, not a colored card in-feed (see Design Bible §3.13).
 - Dogpile dynamics trigger automatic dampening: rate limits, distribution reduction, context prompts.
 
 **Politics and civic content handling**

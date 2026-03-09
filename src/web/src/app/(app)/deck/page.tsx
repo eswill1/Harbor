@@ -151,61 +151,54 @@ function SavePanel({ card, onClose }: { card: DeckCard; onClose: () => void }) {
 const POST_BASE_URL = 'https://dev.joinharbor.app/posts'
 const STUB_ID       = '00000000-0000-0000-0000-000000000000'
 
+// Broadcast Pause: friction lives at the amplification moment, not on the card.
+// reason is forward-compatible — currently only 'high_arousal' triggers the pause flow.
 function SharePanel({ card, onClose }: { card: DeckCard; onClose: () => void }) {
   const { accessToken } = useAuthStore()
   const isHighArousal   = card.arousal_band === 'high'
   const isStub          = card.id === STUB_ID
 
-  const [frozenSecs, setFrozenSecs] = useState(isHighArousal ? 3 : 0)
-  const [copied, setCopied]         = useState(false)
+  const [view, setView]         = useState<'options' | 'add_note'>('options')
+  const [note, setNote]         = useState('')
+  const [noteLink, setNoteLink] = useState('')
+  const [copied, setCopied]     = useState(false)
 
   useEffect(() => {
-    setFrozenSecs(isHighArousal ? 3 : 0)
-    setCopied(false)
-  }, [card.id, isHighArousal])
-
-  useEffect(() => {
-    if (frozenSecs <= 0) return
-    const t = setTimeout(() => setFrozenSecs((s) => s - 1), 1000)
-    return () => clearTimeout(t)
-  }, [frozenSecs])
+    setView('options'); setNote(''); setNoteLink(''); setCopied(false)
+  }, [card.id])
 
   const logShare = (type: 'friend' | 'group' | 'copy_link') => {
     if (isStub || !accessToken) return
     shareApi.log(card.id, type, accessToken).catch(() => {})
   }
 
-  const frozen = frozenSecs > 0
+  const handleBroadcast = async () => {
+    logShare('copy_link')
+    try {
+      await navigator.clipboard.writeText(`${POST_BASE_URL}/${card.id}`)
+      setCopied(true)
+      setTimeout(onClose, 900)
+    } catch { onClose() }
+  }
 
-  const options = [
-    {
-      label:    'Share with a friend',
-      sub:      'Direct messaging — coming soon',
-      isStub:   true,
-      onClick:  () => { logShare('friend'); onClose() },
-    },
-    {
-      label:    'Share to a group',
-      sub:      'Group sharing — coming soon',
-      isStub:   true,
-      onClick:  () => { logShare('group'); onClose() },
-    },
-    {
-      label:    copied ? 'Link copied!' : 'Copy link',
-      sub:      'Share anywhere',
-      isStub:   false,
-      onClick:  async () => {
-        logShare('copy_link')
-        try {
-          await navigator.clipboard.writeText(`${POST_BASE_URL}/${card.id}`)
-          setCopied(true)
-          setTimeout(onClose, 900)
-        } catch {
-          onClose()
-        }
-      },
-    },
-  ]
+  const handleShareWithNote = async () => {
+    logShare('copy_link')
+    const parts = [note.trim(), `${POST_BASE_URL}/${card.id}`, noteLink.trim()].filter(Boolean)
+    try {
+      await navigator.clipboard.writeText(parts.join('\n\n'))
+      setCopied(true)
+      setTimeout(onClose, 900)
+    } catch { onClose() }
+  }
+
+  const CloseBtn = () => (
+    <button onClick={onClose} style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
+      <svg width="20" height="20" viewBox="0 0 256 256">
+        <line x1="200" y1="56" x2="56" y2="200" stroke="currentColor" strokeWidth="16" strokeLinecap="round"/>
+        <line x1="56" y1="56" x2="200" y2="200" stroke="currentColor" strokeWidth="16" strokeLinecap="round"/>
+      </svg>
+    </button>
+  )
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
@@ -216,62 +209,132 @@ function SharePanel({ card, onClose }: { card: DeckCard; onClose: () => void }) 
            onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>
-            Share
+        <div className="flex items-center gap-2">
+          {view === 'add_note' && (
+            <button onClick={() => setView('options')}
+                    className="text-sm font-medium flex-shrink-0"
+                    style={{ color: 'var(--text-primary)' }}>
+              ← Back
+            </button>
+          )}
+          <h2 className="flex-1 font-semibold text-base" style={{ color: 'var(--text-primary)' }}>
+            {view === 'add_note' ? 'Add a note' : 'Share'}
           </h2>
-          <button onClick={onClose} style={{ color: 'var(--text-muted)' }}>
-            <svg width="20" height="20" viewBox="0 0 256 256">
-              <line x1="200" y1="56" x2="56" y2="200" stroke="currentColor" strokeWidth="16" strokeLinecap="round"/>
-              <line x1="56" y1="56" x2="200" y2="200" stroke="currentColor" strokeWidth="16" strokeLinecap="round"/>
-            </svg>
-          </button>
+          <CloseBtn />
         </div>
 
-        {/* High-arousal friction */}
-        {isHighArousal && (
-          <div className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"
-               style={{ background: 'rgba(196,147,90,0.1)', color: 'var(--accent-caution)' }}>
-            <span>This is getting strong reactions — read before sharing.</span>
-            {frozen && (
-              <span className="font-bold text-base w-6 text-center flex-shrink-0">{frozenSecs}</span>
-            )}
-          </div>
-        )}
-
-        {/* Options */}
-        <div className="flex flex-col gap-2">
-          {options.map(({ label, sub, isStub: optionIsStub, onClick }) => {
-            const disabled = frozen || optionIsStub
-            return (
-              <button
-                key={label}
-                onClick={disabled ? undefined : onClick}
-                className="flex items-center justify-between w-full rounded-xl px-4 py-3 text-left transition-opacity"
-                style={{
-                  background: 'var(--bg-elevated)',
-                  border:     '1px solid var(--border)',
-                  opacity:    disabled ? 0.45 : 1,
-                  cursor:     disabled ? 'not-allowed' : 'pointer',
-                }}
-              >
-                <div>
-                  <div className="text-sm font-medium" style={{ color: optionIsStub ? 'var(--text-muted)' : 'var(--text-primary)' }}>
+        {view === 'options' ? (
+          isHighArousal ? (
+            // Broadcast Pause flow
+            <>
+              <div className="rounded-xl px-4 py-3 flex flex-col gap-1"
+                   style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  Pause before broadcasting
+                </p>
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  Broadcast sharing of this type of content often increases conflict. Consider sharing privately or adding context.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => { logShare('friend'); onClose() }}
+                  className="w-full rounded-xl px-4 py-3 text-left"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--accent-primary)', cursor: 'pointer' }}
+                >
+                  <div className="text-sm font-medium" style={{ color: 'var(--accent-primary)' }}>Share privately</div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Direct message — coming soon</div>
+                </button>
+                <button
+                  onClick={() => setView('add_note')}
+                  className="w-full rounded-xl px-4 py-3 text-left"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', cursor: 'pointer' }}
+                >
+                  <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Add a note</div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Share with your own context</div>
+                </button>
+                <button
+                  onClick={isStub ? undefined : handleBroadcast}
+                  className="w-full rounded-xl px-4 py-3 text-left"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', opacity: isStub ? 0.45 : 1, cursor: isStub ? 'not-allowed' : 'pointer' }}
+                >
+                  <div className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
+                    {copied ? 'Copied!' : 'Broadcast anyway'}
+                  </div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Share without adding context</div>
+                </button>
+              </div>
+            </>
+          ) : (
+            // Normal share flow
+            <div className="flex flex-col gap-2">
+              {[
+                { label: 'Share with a friend',              sub: 'Direct messaging — coming soon', disabled: true,  onClick: () => { logShare('friend'); onClose() } },
+                { label: 'Share to a group',                 sub: 'Group sharing — coming soon',    disabled: true,  onClick: () => { logShare('group');  onClose() } },
+                { label: copied ? 'Copied!' : 'Copy link',  sub: 'Share anywhere',                 disabled: false, onClick: handleBroadcast },
+              ].map(({ label, sub, disabled, onClick }) => (
+                <button
+                  key={label}
+                  onClick={disabled ? undefined : onClick}
+                  className="w-full rounded-xl px-4 py-3 text-left transition-opacity"
+                  style={{
+                    background: 'var(--bg-elevated)',
+                    border:     '1px solid var(--border)',
+                    opacity:    disabled ? 0.45 : 1,
+                    cursor:     disabled ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  <div className="text-sm font-medium" style={{ color: disabled ? 'var(--text-muted)' : 'var(--text-primary)' }}>
                     {label}
                   </div>
-                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    {sub}
-                  </div>
-                </div>
-                {frozen && !optionIsStub && (
-                  <span className="text-xs flex-shrink-0" style={{ color: 'var(--accent-caution)' }}>
-                    wait {frozenSecs}s
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{sub}</div>
+                </button>
+              ))}
+            </div>
+          )
+        ) : (
+          // Add a note view
+          <>
+            <textarea
+              className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none"
+              style={{
+                background: 'var(--bg-elevated)',
+                border:     '1px solid var(--border)',
+                color:      'var(--text-primary)',
+                minHeight:  '80px',
+              }}
+              placeholder="What's your take on this?"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={280}
+              autoFocus
+            />
+            <input
+              type="url"
+              className="w-full rounded-xl px-4 py-3 text-sm outline-none"
+              style={{
+                background: 'var(--bg-elevated)',
+                border:     '1px solid var(--border)',
+                color:      'var(--text-primary)',
+              }}
+              placeholder="Add another source (optional)"
+              value={noteLink}
+              onChange={(e) => setNoteLink(e.target.value)}
+            />
+            <button
+              onClick={note.trim() ? handleShareWithNote : undefined}
+              className="w-full rounded-xl px-4 py-3 text-sm font-semibold transition-opacity"
+              style={{
+                background: 'var(--accent-primary)',
+                color:      '#fff',
+                opacity:    note.trim() ? 1 : 0.45,
+                cursor:     note.trim() ? 'pointer' : 'not-allowed',
+              }}
+            >
+              {copied ? 'Copied with note!' : 'Share with note'}
+            </button>
+          </>
+        )}
       </div>
     </div>
   )
@@ -409,7 +472,6 @@ export default function DeckPage() {
   if (!card) return null
 
   const isSerendipity = card.is_serendipity
-  const isHighArousal = card.arousal_band === 'high'
 
   return (
     <>
@@ -435,20 +497,7 @@ export default function DeckPage() {
 
         {/* Card */}
         <div className="rounded-xl overflow-hidden"
-             style={{
-               background: 'var(--bg-surface)',
-               border: `1px solid var(--border)`,
-               borderLeft: isSerendipity || isHighArousal
-                 ? `3px solid ${isHighArousal ? 'var(--accent-caution)' : 'var(--accent-primary)'}`
-                 : '1px solid var(--border)',
-             }}>
-          {/* High arousal warning */}
-          {isHighArousal && (
-            <div className="px-4 pt-3 pb-2 text-xs font-medium"
-                 style={{ background: 'rgba(196,147,90,0.08)', color: 'var(--accent-caution)' }}>
-              This content is trending for strong reactions — read before sharing.
-            </div>
-          )}
+             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
 
           {/* Card header */}
           <div className="px-4 pt-4 pb-3">

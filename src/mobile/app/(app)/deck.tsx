@@ -8,6 +8,7 @@ import {
   Alert,
   Modal,
   Share,
+  TextInput,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
@@ -152,6 +153,8 @@ function WhyThisPanel({
 
 const POST_BASE_URL = 'https://dev.joinharbor.app/posts'
 
+// Broadcast Pause: shown for high-arousal cards. Friction lives here, not on the card.
+// reason is forward-compatible — currently only 'high_arousal' triggers the pause flow.
 function SharePanel({
   card,
   visible,
@@ -165,51 +168,36 @@ function SharePanel({
   accessToken: string | null
   theme:       typeof colors.light
 }) {
-  const insets  = useSafeAreaInsets()
-  const styles  = useMemo(() => makeStyles(theme), [theme])
+  const insets        = useSafeAreaInsets()
+  const styles        = useMemo(() => makeStyles(theme), [theme])
   const isHighArousal = card?.arousal_band === 'high'
+  const isStub        = !card || card.id === '00000000-0000-0000-0000-000000000000'
 
-  // Countdown: 3 seconds for high-arousal, 0 for everything else
-  const [frozenSecs, setFrozenSecs] = useState(0)
-
-  useEffect(() => {
-    if (visible) setFrozenSecs(isHighArousal ? 3 : 0)
-  }, [visible, isHighArousal])
+  const [view, setView]         = useState<'options' | 'add_note'>('options')
+  const [note, setNote]         = useState('')
+  const [noteLink, setNoteLink] = useState('')
 
   useEffect(() => {
-    if (frozenSecs <= 0) return
-    const t = setTimeout(() => setFrozenSecs((s) => s - 1), 1000)
-    return () => clearTimeout(t)
-  }, [frozenSecs])
-
-  const isStub = !card || card.id === '00000000-0000-0000-0000-000000000000'
-  const frozen = frozenSecs > 0
+    if (visible) { setView('options'); setNote(''); setNoteLink('') }
+  }, [visible])
 
   const logShare = (type: 'friend' | 'group' | 'copy_link') => {
     if (!card || isStub || !accessToken) return
     shareApi.log(card.id, type, accessToken).catch(() => {})
   }
 
-  const handleFriend = () => {
-    logShare('friend')
-    onClose()
-    Alert.alert('Coming soon', 'Direct messaging will be available in a future update.')
-  }
-
-  const handleGroup = () => {
-    logShare('group')
-    onClose()
-    Alert.alert('Coming soon', 'Group sharing will be available in a future update.')
-  }
-
-  const handleCopyLink = async () => {
+  const handleBroadcast = async () => {
     if (!card) return
     logShare('copy_link')
-    try {
-      await Share.share({ message: `${POST_BASE_URL}/${card.id}` })
-    } catch {
-      // User dismissed — no action needed
-    }
+    try { await Share.share({ message: `${POST_BASE_URL}/${card.id}` }) } catch {}
+    onClose()
+  }
+
+  const handleShareWithNote = async () => {
+    if (!card) return
+    logShare('copy_link')
+    const parts = [note.trim(), `${POST_BASE_URL}/${card.id}`, noteLink.trim()].filter(Boolean)
+    try { await Share.share({ message: parts.join('\n\n') }) } catch {}
     onClose()
   }
 
@@ -229,54 +217,114 @@ function SharePanel({
         <View style={styles.modalHeader}>
           <View style={styles.modalHandleBar} />
           <View style={styles.modalTitleRow}>
-            <ShareNetwork size={18} color={theme.textPrimary} weight="bold" />
-            <Text style={styles.modalTitle}>Share</Text>
+            {view === 'add_note' ? (
+              <Pressable onPress={() => setView('options')} hitSlop={12}>
+                <ArrowLeft size={18} color={theme.textPrimary} weight="bold" />
+              </Pressable>
+            ) : (
+              <ShareNetwork size={18} color={theme.textPrimary} weight="bold" />
+            )}
+            <Text style={styles.modalTitle}>
+              {view === 'add_note' ? 'Add a note' : 'Share'}
+            </Text>
             <Pressable onPress={onClose} style={styles.modalCloseBtn} hitSlop={12}>
               <X size={18} color={theme.textMuted} weight="bold" />
             </Pressable>
           </View>
         </View>
 
-        {/* High-arousal friction message + countdown */}
-        {isHighArousal && (
-          <View style={[styles.shareArousalBanner]}>
-            <Text style={styles.shareArousalText}>
-              This is getting strong reactions — read before sharing.
-            </Text>
-            {frozen && (
-              <View style={styles.shareCountdownBadge}>
-                <Text style={styles.shareCountdownText}>{frozenSecs}</Text>
+        {view === 'options' ? (
+          isHighArousal ? (
+            // Broadcast Pause flow
+            <>
+              <View style={styles.broadcastPauseBox}>
+                <Text style={styles.broadcastPauseHeadline}>Pause before broadcasting</Text>
+                <Text style={styles.broadcastPauseBody}>
+                  Broadcast sharing of this type of content often increases conflict. Consider sharing privately or adding context.
+                </Text>
               </View>
-            )}
-          </View>
-        )}
-
-        {/* Share options */}
-        <View style={styles.shareOptions}>
-          {[
-            { label: 'Share with a friend', sub: 'Direct message — coming soon', onPress: handleFriend,    isStub: true },
-            { label: 'Share to a group',    sub: 'Group sharing — coming soon',  onPress: handleGroup,     isStub: true },
-            { label: 'Copy link',           sub: 'Share anywhere',               onPress: handleCopyLink,  isStub: false },
-          ].map(({ label, sub, onPress, isStub: optionIsStub }) => (
+              <View style={styles.shareOptions}>
+                <Pressable
+                  style={[styles.shareOption, styles.shareOptionPrimary]}
+                  onPress={() => {
+                    logShare('friend')
+                    onClose()
+                    Alert.alert('Coming soon', 'Direct messaging will be available in a future update.')
+                  }}
+                >
+                  <View style={styles.shareOptionText}>
+                    <Text style={[styles.shareOptionLabel, { color: theme.accentPrimary }]}>Share privately</Text>
+                    <Text style={styles.shareOptionSub}>Direct message — coming soon</Text>
+                  </View>
+                </Pressable>
+                <Pressable style={styles.shareOption} onPress={() => setView('add_note')}>
+                  <View style={styles.shareOptionText}>
+                    <Text style={styles.shareOptionLabel}>Add a note</Text>
+                    <Text style={styles.shareOptionSub}>Share with your own context</Text>
+                  </View>
+                </Pressable>
+                <Pressable
+                  style={[styles.shareOption, isStub && styles.shareOptionDisabled]}
+                  onPress={isStub ? undefined : handleBroadcast}
+                >
+                  <View style={styles.shareOptionText}>
+                    <Text style={[styles.shareOptionLabel, { color: theme.textMuted }]}>Broadcast anyway</Text>
+                    <Text style={styles.shareOptionSub}>Share without adding context</Text>
+                  </View>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            // Normal share flow
+            <View style={styles.shareOptions}>
+              {[
+                { label: 'Share with a friend', sub: 'Direct message — coming soon', disabled: true,  onPress: () => { logShare('friend'); onClose(); Alert.alert('Coming soon', 'Direct messaging will be available in a future update.') } },
+                { label: 'Share to a group',    sub: 'Group sharing — coming soon',  disabled: true,  onPress: () => { logShare('group');  onClose(); Alert.alert('Coming soon', 'Group sharing will be available in a future update.') } },
+                { label: 'Copy link',           sub: 'Share anywhere',               disabled: false, onPress: handleBroadcast },
+              ].map(({ label, sub, disabled, onPress }) => (
+                <Pressable
+                  key={label}
+                  style={[styles.shareOption, disabled && styles.shareOptionDisabled]}
+                  onPress={disabled ? undefined : onPress}
+                >
+                  <View style={styles.shareOptionText}>
+                    <Text style={[styles.shareOptionLabel, disabled && { color: theme.textMuted }]}>{label}</Text>
+                    <Text style={styles.shareOptionSub}>{sub}</Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          )
+        ) : (
+          // Add a note view
+          <>
+            <TextInput
+              style={[styles.noteInput, { color: theme.textPrimary, borderColor: theme.border }]}
+              placeholder="What's your take on this?"
+              placeholderTextColor={theme.textMuted}
+              value={note}
+              onChangeText={setNote}
+              multiline
+              maxLength={280}
+              autoFocus
+            />
+            <TextInput
+              style={[styles.noteLinkInput, { color: theme.textPrimary, borderColor: theme.border }]}
+              placeholder="Add another source (optional)"
+              placeholderTextColor={theme.textMuted}
+              value={noteLink}
+              onChangeText={setNoteLink}
+              autoCapitalize="none"
+              keyboardType="url"
+            />
             <Pressable
-              key={label}
-              style={[styles.shareOption, (frozen || optionIsStub) && styles.shareOptionDisabled]}
-              onPress={frozen || optionIsStub ? undefined : onPress}
+              style={[styles.shareOption, styles.shareOptionPrimary, !note.trim() && styles.shareOptionDisabled]}
+              onPress={note.trim() ? handleShareWithNote : undefined}
             >
-              <View style={styles.shareOptionText}>
-                <Text style={[styles.shareOptionLabel, (frozen || optionIsStub) && { color: theme.textMuted }]}>
-                  {label}
-                </Text>
-                <Text style={styles.shareOptionSub}>{sub}</Text>
-              </View>
-              {frozen && !optionIsStub && (
-                <Text style={[styles.shareOptionSub, { color: theme.accentCaution }]}>
-                  wait {frozenSecs}s
-                </Text>
-              )}
+              <Text style={[styles.shareOptionLabel, { color: theme.accentPrimary }]}>Share with note</Text>
             </Pressable>
-          ))}
-        </View>
+          </>
+        )}
       </View>
     </Modal>
   )
@@ -917,37 +965,53 @@ const makeStyles = (c: typeof colors.light) => StyleSheet.create({
     paddingBottom: space[2],
   },
 
-  // Share panel
-  shareArousalBanner: {
-    flexDirection:     'row',
-    alignItems:        'center',
-    justifyContent:    'space-between',
-    backgroundColor:   c.accentCaution + '18',
+  // Broadcast Pause box (shown in share panel for high-arousal cards)
+  broadcastPauseBox: {
+    backgroundColor:   c.bgElevated,
+    borderRadius:      radius.md,
+    borderWidth:       1,
+    borderColor:       c.border,
+    paddingVertical:   space[3],
+    paddingHorizontal: space[4],
+    gap:               space[1],
+  },
+  broadcastPauseHeadline: {
+    fontSize:   fontSize.base,
+    fontFamily: fontFamily.interBold,
+    color:      c.textPrimary,
+  },
+  broadcastPauseBody: {
+    fontSize:   fontSize.sm,
+    fontFamily: fontFamily.inter,
+    color:      c.textSecondary,
+    lineHeight: 19,
+  },
+
+  // Share option — primary variant (highlighted border)
+  shareOptionPrimary: {
+    borderColor: c.accentPrimary,
+  },
+
+  // Add a note inputs
+  noteInput: {
+    borderWidth:       1,
     borderRadius:      radius.md,
     paddingVertical:   space[3],
     paddingHorizontal: space[4],
-    gap:               space[3],
+    fontSize:          fontSize.base,
+    fontFamily:        fontFamily.inter,
+    minHeight:         80,
+    textAlignVertical: 'top',
   },
-  shareArousalText: {
-    flex:       1,
-    fontSize:   fontSize.sm,
-    fontFamily: fontFamily.inter,
-    color:      c.accentCaution,
-    lineHeight: 19,
+  noteLinkInput: {
+    borderWidth:       1,
+    borderRadius:      radius.md,
+    paddingVertical:   space[3],
+    paddingHorizontal: space[4],
+    fontSize:          fontSize.sm,
+    fontFamily:        fontFamily.inter,
   },
-  shareCountdownBadge: {
-    width:           28,
-    height:          28,
-    borderRadius:    14,
-    backgroundColor: c.accentCaution,
-    alignItems:      'center',
-    justifyContent:  'center',
-  },
-  shareCountdownText: {
-    fontSize:   fontSize.sm,
-    fontFamily: fontFamily.interBold,
-    color:      '#fff',
-  },
+
   shareOptions: {
     gap: space[2],
   },
