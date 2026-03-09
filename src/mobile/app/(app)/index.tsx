@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   View,
   Text,
@@ -26,6 +26,7 @@ import { Button } from '../../components/ui/Button'
 import { useSessionStore, loadLastIntent, type IntentId } from '../../store/session'
 import { useAuthStore } from '../../store/auth'
 import { deckApi } from '../../lib/api'
+import { useTheme } from '../../hooks/useTheme'
 
 const SCREEN_WIDTH = Dimensions.get('window').width
 const CARD_GAP     = space[3]
@@ -85,6 +86,8 @@ export default function IntentSelectorScreen() {
   const [selected, setSelected] = useState<IntentId | null>(null)
   const [loading, setLoading]   = useState(false)
   const fadeAnim       = useRef(new Animated.Value(0)).current
+  const theme          = useTheme()
+  const styles         = useMemo(() => makeStyles(theme), [theme])
 
   // Load last intent and pre-select it
   useEffect(() => {
@@ -156,7 +159,7 @@ export default function IntentSelectorScreen() {
               <item.Icon
                 size={32}
                 weight={isSelected ? 'fill' : 'regular'}
-                color={isSelected ? '#fff' : colors.light.accentPrimary}
+                color={isSelected ? '#fff' : theme.accentPrimary}
               />
               <Text style={[styles.cardLabel, isSelected && styles.cardLabelSelected]}>
                 {item.label}
@@ -187,10 +190,10 @@ export default function IntentSelectorScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: typeof colors.light) => StyleSheet.create({
   root: {
     flex:            1,
-    backgroundColor: colors.light.bgBase,
+    backgroundColor: c.bgBase,
   },
 
   listContent: {
@@ -210,7 +213,7 @@ const styles = StyleSheet.create({
   heading: {
     fontSize:     fontSize['2xl'],
     fontFamily:   fontFamily.loraBold,
-    color:        colors.light.textPrimary,
+    color:        c.textPrimary,
     letterSpacing: -0.5,
     lineHeight:   36,
   },
@@ -218,24 +221,24 @@ const styles = StyleSheet.create({
   subheading: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     lineHeight: 22,
   },
 
   card: {
     width:           CARD_WIDTH,
-    backgroundColor: colors.light.bgSurface,
+    backgroundColor: c.bgSurface,
     borderRadius:    radius.xl,
     borderWidth:     1.5,
-    borderColor:     colors.light.border,
+    borderColor:     c.border,
     padding:         space[4],
     gap:             space[2],
     ...shadow.sm,
   },
 
   cardSelected: {
-    backgroundColor: colors.light.accentPrimary,
-    borderColor:     colors.light.accentPrimary,
+    backgroundColor: c.accentPrimary,
+    borderColor:     c.accentPrimary,
     transform:       [{ scale: 1.02 }],
   },
 
@@ -246,7 +249,7 @@ const styles = StyleSheet.create({
   cardLabel: {
     fontSize:   fontSize.md,
     fontFamily: fontFamily.interBold,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
     letterSpacing: -0.2,
   },
 
@@ -257,7 +260,7 @@ const styles = StyleSheet.create({
   cardDesc: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     lineHeight: 18,
   },
 
@@ -272,8 +275,8 @@ const styles = StyleSheet.create({
     right:           0,
     paddingHorizontal: H_PADDING,
     paddingTop:      space[4],
-    backgroundColor: colors.light.bgBase,
+    backgroundColor: c.bgBase,
     borderTopWidth:  1,
-    borderTopColor:  colors.light.border,
+    borderTopColor:  c.border,
   },
 })

@@ -13,7 +13,7 @@
  * 10. Pull-to-refresh on notices list works
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import {
   View,
   Text,
@@ -30,6 +30,7 @@ import { router, useFocusEffect } from 'expo-router'
 import { moderationApi, Notice, NoticeType } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
 import { colors, fontSize, fontFamily, space, radius } from '../../constants/tokens'
+import { useTheme } from '../../hooks/useTheme'
 
 const PAGE_SIZE = 20
 
@@ -69,6 +70,8 @@ function stripPolicySectionPrefix(raw: string): string {
 export default function NoticesScreen() {
   const insets      = useSafeAreaInsets()
   const accessToken = useAuthStore((s) => s.accessToken)
+  const theme       = useTheme()
+  const styles      = useMemo(() => makeStyles(theme), [theme])
 
   const [notices,     setNotices]     = useState<Notice[]>([])
   const [loading,     setLoading]     = useState(true)
@@ -141,7 +144,7 @@ export default function NoticesScreen() {
           <Text style={styles.rowSummary} numberOfLines={1}>{item.plain_summary}</Text>
           <Text style={styles.rowTime}>{timeAgo(item.created_at)}</Text>
         </View>
-        <CaretRight size={18} color={colors.light.textMuted} weight="regular" />
+        <CaretRight size={18} color={theme.textMuted} weight="regular" />
       </Pressable>
     )
   }
@@ -154,7 +157,7 @@ export default function NoticesScreen() {
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
           onPress={() => router.back()}
         >
-          <ArrowLeft size={22} color={colors.light.textPrimary} weight="regular" />
+          <ArrowLeft size={22} color={theme.textPrimary} weight="regular" />
         </Pressable>
         <Text style={styles.headerTitle}>{"Notices"}</Text>
         <View style={styles.headerSpacer} />
@@ -163,11 +166,11 @@ export default function NoticesScreen() {
       {/* ── Body ── */}
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.light.accentPrimary} />
+          <ActivityIndicator size="large" color={theme.accentPrimary} />
         </View>
       ) : error ? (
         <View style={styles.centered}>
-          <Warning size={40} color={colors.light.textMuted} weight="regular" />
+          <Warning size={40} color={theme.textMuted} weight="regular" />
           <Text style={styles.errorText}>{"Could not load notices."}</Text>
           <Pressable
             style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.7 }]}
@@ -186,7 +189,7 @@ export default function NoticesScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor={colors.light.accentPrimary}
+              tintColor={theme.accentPrimary}
             />
           }
           onEndReached={handleLoadMore}
@@ -194,13 +197,13 @@ export default function NoticesScreen() {
           ListFooterComponent={
             loadingMore ? (
               <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color={colors.light.textMuted} />
+                <ActivityIndicator size="small" color={theme.textMuted} />
               </View>
             ) : null
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <CheckCircle size={48} color={colors.light.accentSuccess} weight="regular" />
+              <CheckCircle size={48} color={theme.accentSuccess} weight="regular" />
               <Text style={styles.emptyTitle}>{"No notices. You\u2019re all good."}</Text>
             </View>
           }
@@ -210,10 +213,10 @@ export default function NoticesScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: typeof colors.light) => StyleSheet.create({
   container: {
     flex:            1,
-    backgroundColor: colors.light.bgBase,
+    backgroundColor: c.bgBase,
   },
 
   // Header
@@ -223,7 +226,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[4],
     paddingVertical:   space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: c.border,
   },
   backBtn: {
     width:  40,
@@ -236,7 +239,7 @@ const styles = StyleSheet.create({
     textAlign:     'center',
     fontSize:      fontSize.xl,
     fontFamily:    fontFamily.loraBold,
-    color:         colors.light.textPrimary,
+    color:         c.textPrimary,
     letterSpacing: -0.5,
   },
   headerSpacer: {
@@ -250,8 +253,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     paddingVertical:   space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
-    backgroundColor:   colors.light.bgBase,
+    borderBottomColor: c.border,
+    backgroundColor:   c.bgBase,
   },
   rowContent: {
     flex: 1,
@@ -267,12 +270,12 @@ const styles = StyleSheet.create({
     width:           8,
     height:          8,
     borderRadius:    4,
-    backgroundColor: colors.light.accentCaution,
+    backgroundColor: c.accentCaution,
   },
   rowTitle: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
     flex:       1,
   },
   rowTitleUnread: {
@@ -281,17 +284,17 @@ const styles = StyleSheet.create({
   rowPolicy: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
   rowSummary: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
   },
   rowTime: {
     fontSize:   fontSize.xs,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
     marginTop:  2,
   },
 
@@ -305,7 +308,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     textAlign:  'center',
   },
   retryBtn: {
@@ -313,12 +316,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     borderRadius:      radius.md,
     borderWidth:       1,
-    borderColor:       colors.light.border,
+    borderColor:       c.border,
   },
   retryLabel: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.accentPrimary,
+    color:      c.accentPrimary,
   },
 
   // Empty state
@@ -335,7 +338,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     textAlign:  'center',
   },
 

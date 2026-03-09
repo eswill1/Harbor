@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { moderationApi, Notice, Appeal, NoticeType } from '../../../lib/api'
 import { useAuthStore } from '../../../store/auth'
 import { colors, fontSize, fontFamily, space, radius } from '../../../constants/tokens'
+import { useTheme } from '../../../hooks/useTheme'
 
 const NOTICE_DISPLAY_NAMES: Record<NoticeType, string> = {
   content_labeled:              'Label applied',
@@ -55,6 +56,8 @@ export default function NoticeDetailScreen() {
   const insets      = useSafeAreaInsets()
   const accessToken = useAuthStore((s) => s.accessToken)
   const { id }      = useLocalSearchParams<{ id: string }>()
+  const theme       = useTheme()
+  const styles      = useMemo(() => makeStyles(theme), [theme])
 
   const [notice,  setNotice]  = useState<Notice | null>(null)
   const [appeal,  setAppeal]  = useState<Appeal | null>(null)
@@ -83,7 +86,7 @@ export default function NoticeDetailScreen() {
   if (loading) {
     return (
       <View style={[styles.root, styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={colors.light.accentPrimary} />
+        <ActivityIndicator size="large" color={theme.accentPrimary} />
       </View>
     )
   }
@@ -91,8 +94,8 @@ export default function NoticeDetailScreen() {
   if (error || !notice) {
     return (
       <View style={[styles.root, styles.centered, { paddingTop: insets.top }]}>
-        <BackRow onBack={() => router.back()} />
-        <Warning size={40} color={colors.light.textMuted} weight="regular" />
+        <BackRow onBack={() => router.back()} theme={theme} />
+        <Warning size={40} color={theme.textMuted} weight="regular" />
         <Text style={styles.errorText}>{"Could not load notice."}</Text>
         <Pressable
           style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.7 }]}
@@ -121,7 +124,7 @@ export default function NoticeDetailScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <BackRow onBack={() => router.back()} />
+      <BackRow onBack={() => router.back()} theme={theme} />
 
       <ScrollView
         style={styles.scroll}
@@ -199,7 +202,7 @@ export default function NoticeDetailScreen() {
             onPress={() => Linking.openURL(guidelinesUrl)}
           >
             <Text style={styles.linkText}>{"Read the guideline"}</Text>
-            <ArrowSquareOut size={16} color={colors.light.accentPrimary} weight="regular" />
+            <ArrowSquareOut size={16} color={theme.accentPrimary} weight="regular" />
           </Pressable>
 
           {/* Appeal status row (if appeal exists) */}
@@ -210,7 +213,7 @@ export default function NoticeDetailScreen() {
                 router.push({ pathname: '/(app)/notice/[id]/appeal', params: { id: notice.id } })
               }
             >
-              <SealCheck size={20} color={colors.light.accentPrimary} weight="regular" />
+              <SealCheck size={20} color={theme.accentPrimary} weight="regular" />
               <View style={styles.appealStatusContent}>
                 <Text style={styles.appealStatusLabel}>{"Appeal submitted"}</Text>
                 <Text style={styles.appealStatusSub}>
@@ -218,7 +221,7 @@ export default function NoticeDetailScreen() {
                   {appeal.outcome_note ? ` — ${appeal.outcome_note}` : ''}
                 </Text>
               </View>
-              <ArrowSquareOut size={16} color={colors.light.textMuted} weight="regular" />
+              <ArrowSquareOut size={16} color={theme.textMuted} weight="regular" />
             </Pressable>
           ) : null}
 
@@ -244,24 +247,25 @@ export default function NoticeDetailScreen() {
   )
 }
 
-function BackRow({ onBack }: { onBack: () => void }) {
+function BackRow({ onBack, theme }: { onBack: () => void; theme: typeof colors.light }) {
+  const styles = useMemo(() => makeStyles(theme), [theme])
   return (
     <View style={styles.backRow}>
       <Pressable
         style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
         onPress={onBack}
       >
-        <ArrowLeft size={22} color={colors.light.textPrimary} weight="regular" />
+        <ArrowLeft size={22} color={theme.textPrimary} weight="regular" />
         <Text style={styles.backLabel}>{"Notices"}</Text>
       </Pressable>
     </View>
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: typeof colors.light) => StyleSheet.create({
   root: {
     flex:            1,
-    backgroundColor: colors.light.bgBase,
+    backgroundColor: c.bgBase,
   },
   centered: {
     alignItems:     'center',
@@ -274,7 +278,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[4],
     paddingVertical:   space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: c.border,
   },
   backBtn: {
     flexDirection: 'row',
@@ -285,7 +289,7 @@ const styles = StyleSheet.create({
   backLabel: {
     fontSize:      fontSize.md,
     fontFamily:    fontFamily.loraBold,
-    color:         colors.light.textPrimary,
+    color:         c.textPrimary,
     letterSpacing: -0.3,
   },
 
@@ -305,7 +309,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height:          1,
-    backgroundColor: colors.light.border,
+    backgroundColor: c.border,
     marginHorizontal: space[5],
   },
 
@@ -313,18 +317,18 @@ const styles = StyleSheet.create({
   noticeType: {
     fontSize:      fontSize.xl,
     fontFamily:    fontFamily.loraBold,
-    color:         colors.light.textPrimary,
+    color:         c.textPrimary,
     letterSpacing: -0.5,
   },
   policySubtitle: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
   timestamp: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
     marginTop:  space[1],
   },
 
@@ -332,7 +336,7 @@ const styles = StyleSheet.create({
   sectionHeading: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.interBold,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom:  space[1],
@@ -340,29 +344,29 @@ const styles = StyleSheet.create({
   bodyText: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.lora,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
     lineHeight: 26,
   },
   durationText: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     marginTop:  space[1],
   },
 
   // Quote block
   quoteBlock: {
     borderLeftWidth:  3,
-    borderLeftColor:  colors.light.borderStrong,
+    borderLeftColor:  c.borderStrong,
     paddingLeft:      space[4],
     paddingVertical:  space[2],
-    backgroundColor:  colors.light.bgElevated,
+    backgroundColor:  c.bgElevated,
     borderRadius:     radius.sm,
   },
   quoteText: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.lora,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     lineHeight: 22,
   },
 
@@ -370,16 +374,16 @@ const styles = StyleSheet.create({
   rankingNote: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
     lineHeight: 20,
     fontStyle:  'italic',
   },
 
   // Caution / amber box
   cautionBox: {
-    backgroundColor: colors.light.accentCaution + '18',
+    backgroundColor: c.accentCaution + '18',
     borderLeftWidth:  3,
-    borderLeftColor:  colors.light.accentCaution,
+    borderLeftColor:  c.accentCaution,
     borderRadius:     radius.sm,
     padding:          space[4],
     marginBottom:     space[2],
@@ -387,7 +391,7 @@ const styles = StyleSheet.create({
   cautionBoxText: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
     lineHeight: 22,
   },
 
@@ -401,7 +405,7 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.accentPrimary,
+    color:      c.accentPrimary,
   },
 
   // Appeal status row
@@ -413,8 +417,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[4],
     borderRadius:   radius.md,
     borderWidth:    1,
-    borderColor:    colors.light.border,
-    backgroundColor: colors.light.bgSurface,
+    borderColor:    c.border,
+    backgroundColor: c.bgSurface,
     marginTop:      space[2],
   },
   appealStatusContent: {
@@ -424,12 +428,12 @@ const styles = StyleSheet.create({
   appealStatusLabel: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
   },
   appealStatusSub: {
     fontSize:   fontSize.xs,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
 
   // Appeal button
@@ -438,7 +442,7 @@ const styles = StyleSheet.create({
     paddingVertical:   space[4],
     paddingHorizontal: space[5],
     borderRadius:      radius.md,
-    backgroundColor:   colors.light.accentPrimary,
+    backgroundColor:   c.accentPrimary,
     alignItems:        'center',
   },
   appealBtnLabel: {
@@ -451,7 +455,7 @@ const styles = StyleSheet.create({
   appealClosedText: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
     marginTop:  space[2],
   },
 
@@ -459,7 +463,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     textAlign:  'center',
   },
   retryBtn: {
@@ -467,11 +471,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     borderRadius:      radius.md,
     borderWidth:       1,
-    borderColor:       colors.light.border,
+    borderColor:       c.border,
   },
   retryLabel: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.accentPrimary,
+    color:      c.accentPrimary,
   },
 })

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, Pressable, Alert } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { User, SignOut, Bell, CaretRight } from 'phosphor-react-native'
@@ -7,10 +7,13 @@ import { router } from 'expo-router'
 import { authApi, moderationApi } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
 import { colors, fontSize, fontFamily, space, radius } from '../../constants/tokens'
+import { useTheme } from '../../hooks/useTheme'
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets()
   const { user, accessToken, clearAuth } = useAuthStore()
+  const theme  = useTheme()
+  const styles = useMemo(() => makeStyles(theme), [theme])
 
   const [unreadCount, setUnreadCount] = useState(0)
 
@@ -52,7 +55,7 @@ export default function ProfileScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.avatar}>
-        <User size={32} color={colors.light.accentPrimary} weight="regular" />
+        <User size={32} color={theme.accentPrimary} weight="regular" />
       </View>
 
       {user && (
@@ -68,29 +71,29 @@ export default function ProfileScreen() {
           style={({ pressed }) => [styles.navRow, pressed && { opacity: 0.7 }]}
           onPress={() => router.push('/(app)/notices')}
         >
-          <Bell size={20} color={colors.light.textSecondary} weight="regular" />
+          <Bell size={20} color={theme.textSecondary} weight="regular" />
           <Text style={styles.navLabel}>{"Notices"}</Text>
           {unreadCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : String(unreadCount)}</Text>
             </View>
           )}
-          <CaretRight size={16} color={colors.light.textMuted} weight="regular" style={styles.navChevron} />
+          <CaretRight size={16} color={theme.textMuted} weight="regular" style={styles.navChevron} />
         </Pressable>
       </View>
 
       <TouchableOpacity style={styles.signOutButton} onPress={handleLogout}>
-        <SignOut size={18} color={colors.light.textSecondary} weight="regular" />
+        <SignOut size={18} color={theme.textSecondary} weight="regular" />
         <Text style={styles.signOutLabel}>Sign out</Text>
       </TouchableOpacity>
     </View>
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: typeof colors.light) => StyleSheet.create({
   container: {
     flex:            1,
-    backgroundColor: colors.light.bgBase,
+    backgroundColor: c.bgBase,
     alignItems:      'center',
     justifyContent:  'center',
     gap:             space[4],
@@ -99,7 +102,7 @@ const styles = StyleSheet.create({
     width:           80,
     height:          80,
     borderRadius:    40,
-    backgroundColor: colors.light.bgElevated,
+    backgroundColor: c.bgElevated,
     alignItems:      'center',
     justifyContent:  'center',
     marginBottom:    space[2],
@@ -107,13 +110,13 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize:     fontSize.lg,
     fontFamily:   fontFamily.interBold,
-    color:        colors.light.textPrimary,
+    color:        c.textPrimary,
     letterSpacing: -0.3,
   },
   handle: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
 
   // Nav rows
@@ -121,9 +124,9 @@ const styles = StyleSheet.create({
     width:         '100%',
     marginTop:     space[4],
     borderTopWidth: 1,
-    borderTopColor: colors.light.border,
+    borderTopColor: c.border,
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: c.border,
   },
   navRow: {
     flexDirection:     'row',
@@ -131,13 +134,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     paddingVertical:   space[4],
     gap:               space[3],
-    backgroundColor:   colors.light.bgBase,
+    backgroundColor:   c.bgBase,
   },
   navLabel: {
     flex:       1,
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
   },
   navChevron: {
     marginLeft: 'auto',
@@ -146,7 +149,7 @@ const styles = StyleSheet.create({
     minWidth:        20,
     height:          20,
     borderRadius:    10,
-    backgroundColor: colors.light.accentCaution,
+    backgroundColor: c.accentCaution,
     alignItems:      'center',
     justifyContent:  'center',
     paddingHorizontal: space[1],
@@ -165,12 +168,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     borderRadius:   radius.md,
     borderWidth:    1,
-    borderColor:    colors.light.border,
+    borderColor:    c.border,
     marginTop:      space[4],
   },
   signOutLabel: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
 })

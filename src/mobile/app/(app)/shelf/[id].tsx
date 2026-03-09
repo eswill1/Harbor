@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { shelvesApi, ShelfItem } from '../../../lib/api'
 import { useAuthStore } from '../../../store/auth'
 import { colors, fontSize, fontFamily, space, radius } from '../../../constants/tokens'
+import { useTheme } from '../../../hooks/useTheme'
 
 function relativeTime(isoString: string): string {
   const diffMs  = Date.now() - new Date(isoString).getTime()
@@ -32,6 +33,8 @@ export default function ShelfDetailScreen() {
   const insets      = useSafeAreaInsets()
   const accessToken = useAuthStore((s) => s.accessToken)
   const { id, name } = useLocalSearchParams<{ id: string; name: string }>()
+  const theme       = useTheme()
+  const styles      = useMemo(() => makeStyles(theme), [theme])
 
   const [items, setItems]   = useState<ShelfItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -107,14 +110,14 @@ export default function ShelfDetailScreen() {
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
           onPress={() => router.back()}
         >
-          <ArrowLeft size={22} color={colors.light.textPrimary} weight="regular" />
+          <ArrowLeft size={22} color={theme.textPrimary} weight="regular" />
           <Text style={styles.backLabel} numberOfLines={1}>{name ?? 'Shelf'}</Text>
         </Pressable>
       </View>
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.light.accentPrimary} />
+          <ActivityIndicator size="large" color={theme.accentPrimary} />
         </View>
       ) : (
         <FlatList
@@ -133,10 +136,10 @@ export default function ShelfDetailScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: typeof colors.light) => StyleSheet.create({
   root: {
     flex:            1,
-    backgroundColor: colors.light.bgBase,
+    backgroundColor: c.bgBase,
   },
 
   // Back row
@@ -144,7 +147,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[4],
     paddingVertical:   space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: c.border,
   },
   backBtn: {
     flexDirection: 'row',
@@ -156,7 +159,7 @@ const styles = StyleSheet.create({
   backLabel: {
     fontSize:   fontSize.md,
     fontFamily: fontFamily.loraBold,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
     letterSpacing: -0.3,
     flexShrink:  1,
   },
@@ -173,7 +176,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     paddingVertical:   space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: c.border,
     gap:               space[3],
   },
   authorRow: {
@@ -185,7 +188,7 @@ const styles = StyleSheet.create({
     width:           36,
     height:          36,
     borderRadius:    18,
-    backgroundColor: colors.light.accentPrimary,
+    backgroundColor: c.accentPrimary,
     alignItems:      'center',
     justifyContent:  'center',
   },
@@ -200,23 +203,23 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.interBold,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
   },
   handle: {
     fontSize:   fontSize.xs,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
   body: {
     fontSize:   fontSize.md,
     fontFamily: fontFamily.lora,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
     lineHeight: 26,
   },
   savedAt: {
     fontSize:   fontSize.xs,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
   },
 
   // Empty state
@@ -232,7 +235,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     textAlign:  'center',
   },
 
@@ -240,7 +243,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width:           1,
     height:          24,
-    backgroundColor: colors.light.border,
+    backgroundColor: c.border,
     marginHorizontal: space[3],
   },
   retryBtn: {
@@ -248,11 +251,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     borderRadius:      radius.md,
     borderWidth:       1,
-    borderColor:       colors.light.border,
+    borderColor:       c.border,
   },
   retryLabel: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.accentPrimary,
+    color:      c.accentPrimary,
   },
 })
