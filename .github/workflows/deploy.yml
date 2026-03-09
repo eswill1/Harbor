@@ -40,7 +40,7 @@ jobs:
       - name: Build and restart
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            'cd /home/ed/harbor && docker compose build && doppler run -- docker compose up -d --force-recreate api'
+            'cd /home/ed/harbor && docker compose build && docker rm -f harbor-api 2>/dev/null || true && doppler run -- docker compose up -d api'
 
       - name: Run migrations
         run: |
