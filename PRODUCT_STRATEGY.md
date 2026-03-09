@@ -115,6 +115,30 @@ That creates stickiness without turning every post into a performance.
 
 ---
 
+## Perspective: Context Without a Verdict
+
+The news problem isn't volume. It's the context vacuum.
+
+When a news link lands in your feed today, you get the article, the headline, and the engagement count. You don't get: how many other outlets covered this story, whether this source has a credibility track record, or what the framing tendency of the outlet is. Social platforms have avoided context deliberately — context slows down sharing, makes people think instead of react, and is bad for engagement.
+
+That's Harbor's opening.
+
+Perspective adds a context layer to news links: which outlets covered the story, and the reliability track record of the source you're reading. In Civic Lane, it also shows framing breadth — not a "this source is liberal" verdict, but a simple picture of how many outlets from different framing directions covered the same story.
+
+The strategic logic has three parts.
+
+**It makes Harbor more useful for the information use case — without making Harbor a publisher.** The context is sourced from multiple independent raters. Harbor synthesizes and displays it. Harbor doesn't rate anything. That's the difference between a useful tool and a political actor.
+
+**It extends the satisfaction loop into news.** The promise isn't "we'll tell you what's true." It's "you'll understand what you're reading better when you leave." That's the Usefulness row in the four-need table, applied to the information space.
+
+**It's a real competitive moat.** A platform can't replicate Perspective while also optimizing for engagement, because engagement optimization destroys the honesty that makes context valuable. A "bias label" that's designed to be shareable — one that says "Harbor rates AP as left-wing" — is a completely different product. It generates outrage, gets screenshotted, and turns the context layer into an engagement feature. That's exactly what Perspective's design forbids.
+
+The dot grid instead of a framing bar isn't a design choice and a safety choice. It's the same choice. Breadth without proportion, presence without score, outlet names on tap instead of ideology labels in bold. You can see that many outlets covered a story. You cannot make a screenshot that turns Harbor into a bias meter.
+
+That constraint is the product. Competitors that try to copy it while chasing engagement will get it wrong in exactly the ways that make it dangerous. Harbor can afford to get it right because Harbor's business model doesn't depend on outrage.
+
+---
+
 ## The Business Model Is Not Optional
 
 If Harbor makes money from "more minutes," it will eventually drift into manipulation. Sustainable alignment requires revenue that rewards usefulness, not addiction.
@@ -206,7 +230,7 @@ Harbor doesn't have to replace all entertainment scrolling. It doesn't need to b
 - Friends and family updates
 - Local and community coordination
 - Professional and hobby communities
-- Civic conversation that doesn't melt into outrage
+- Civic conversation that doesn't melt into outrage — with Perspective context, not a verdict
 
 Own those, and something important shifts. The doomscroll apps become what they should have always been: optional entertainment. Not the public square. Not where elections get decided. Not where communities fracture. Just apps people choose when they want distraction — instead of apps that colonize everything else by default.
 

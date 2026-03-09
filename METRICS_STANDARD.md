@@ -1,5 +1,5 @@
 # Harbor Metrics Standard
-### Version 0.1
+### Version 0.2 — Aligned with Constitution v0.2 (includes Perspective §11), Ranking Spec v0.2
 
 ---
 
@@ -289,6 +289,10 @@ Any change to:
 - Friction thresholds for amplification
 - Visibility or notice behavior for enforcement
 - Messaging or notification defaults, batching thresholds, quiet hours, or indicator behavior (Constitution §9, Design Bible §8)
+- Perspective rater sources (adding, removing, or changing a rater)
+- Perspective reliability tier mapping logic (how rater ranges collapse to tier labels)
+- Perspective framing grouping methodology (how L/C/R is derived from rater data)
+- Perspective data versioning (`data_version` bump) — must be accompanied by an RFC per Constitution §11
 
 Material changes require the RFC process and formal evaluation below.
 
@@ -368,6 +372,79 @@ Any material change to messaging or notification behavior (defaults, batching th
 
 ---
 
+## Perspective Metrics
+
+Perspective is a purely informational context layer — it is not a ranking input and not a content moderator. Metrics here fall into three categories: **firewall compliance** (constitutional, must be 100%), **user experience impact** (safety gates for rollout), and **data quality** (operational health).
+
+### Perspective Firewall Compliance (Tier 0)
+
+This is a constitutional constraint, not a KPI. It must be mechanically enforced and verified on every deploy.
+
+| Metric | Target | Action if violated |
+|---|---|---|
+| Prohibited feature appearance rate | 0% — any Perspective table field appearing in a ranking model feature set | **Immediate rollback** + incident report + constitutional review (Ranking Spec §10.2) |
+| Framing gate compliance | 100% — `framing_direction` must never be returned to non-Civic users | Immediate rollback of the API change |
+| Rater attribution presence | 100% — every reliability display must name the raters and update date | Ship-block until fixed |
+
+These are enforced via:
+- Nightly automated audit (feature importance log scan)
+- API-level test: confirm `framing_direction` is null for responses to non-Civic users
+- E2E test on every deploy: fetch Perspective panel as non-Civic user, assert no framing fields present
+
+### Perspective Rollout Impact (Tier 2)
+
+When Perspective panels are introduced (Phase 2), evaluate against the following gates before global ship. These use the same tolerances as general ranking changes.
+
+**Measured in Civic Lane users only (where full Perspective is shown):**
+
+| Metric | Gate |
+|---|---|
+| Civic SSR | Non-decrease beyond -2% relative vs. Civic-without-Perspective control |
+| RR (Civic users) | Non-increase beyond +5% relative |
+| Worse Mood Rate (Civic, if collected) | Non-increase beyond +5% relative |
+
+**Rationale:** If showing reliability context or coverage dots causes Civic users to feel more anxious or dissatisfied — rather than more informed — that is a design failure, not just a metric miss. Investigate qualitatively before shipping globally.
+
+**For non-Civic users (reliability context only — collapsed by default):**
+
+| Metric | Gate |
+|---|---|
+| SSR across all intents | Non-decrease beyond -2% relative |
+| RR | Non-increase beyond +5% relative |
+
+The collapsed default minimizes impact outside Civic, but any degradation must be investigated.
+
+### Perspective Data Quality (Tier 3)
+
+These are operational diagnostics. They inform data pipeline health and rater update cadence, not ranking.
+
+| Metric | Definition | Target |
+|---|---|---|
+| Outlet coverage hit rate | % of news link cards that resolve to a known outlet in `perspective_outlets` | Track over time; no hard target initially — use to inform outlet seeding |
+| Rater data freshness | Days since `rater_updated_at` for the outlet set | Alert if any outlet's data is >90 days stale |
+| Mapping error correction rate | % of outlet domain-mapping dispute reports that result in a verified correction | Track; high rate indicates domain normalization problems |
+| Civic lens adoption | % of Civic users who have set a non-"all" lens preference | Informational only — never optimized |
+| Cross-coverage reader open rate | % of Perspective panel opens that result in "Read cross-coverage" tap | Informational — helps size the cross-coverage index |
+| Panel open rate | % of news link card exposures where user opens the Perspective panel | Informational — adoption signal |
+
+**Important:** Panel open rate and lens adoption are tracked for product health only. Harbor must never optimize to increase these numbers — that would turn the transparency layer into an engagement feature.
+
+### Perspective Rollback Triggers
+
+**Immediate rollback:**
+- Any confirmed violation of the Perspective firewall (prohibited signal in ranking or framing data returned to non-Civic user)
+- Civic SSR decreases ≥15% relative, sustained 2+ hours, after a Perspective change
+
+**Fast rollback (within 24 hours):**
+- Civic SSR decreases ≥5% relative, sustained over a full day
+- RR increases ≥10% relative in Civic users after a Perspective change
+
+**Manual review required (no auto-ship):**
+- Any Perspective data version bump (`data_version` change) — must complete RFC process first
+- Rater source changes that cause reliability tier reclassification for >1% of known outlets
+
+---
+
 ## Rollback Triggers
 
 ### Immediate Rollback (same day)
@@ -418,18 +495,21 @@ These are starting points and should tighten over time.
 - Dogpile incident rate
 - Moderation queue time and appeal overturn rate
 - Top user complaints (qualitative)
+- Perspective firewall compliance (green/red — must be green; any red blocks the dashboard)
 
 ### Weekly Product Review
 - Breakdowns by intent and cohort
 - Shelf usefulness yield by category
 - Relationship Value Index trends
 - Audit results for arousal model and moderation automation
+- Perspective data quality: outlet coverage hit rate, rater data freshness alerts, mapping error corrections
 
 ### Public Transparency Cadence (monthly or quarterly)
 - High-level SSR/RR trend (aggregated)
 - Moderation volumes and appeal outcomes
 - Major ranking RFCs shipped and what changed (plain language)
 - Methodology summaries (no sensitive details)
+- Perspective: active rater sources, data version, any outlet mapping corrections made, any rater methodology changes and rationale
 
 ---
 
@@ -474,4 +554,9 @@ prompt_response         (satisfaction / regret / mood)
 message_delivered       (conversation_id — no content; delivery confirmation only)
 notification_sent       (type: push/digest/silent; conversation_id; no content)
 notification_opened     (notification_id — compulsion proxy; monitor for rapid repeat opens)
+perspective_panel_opened  (content_id, outlet_known: bool, civic_user: bool)
+  -- NOTE: outlet identity and framing data must NOT be logged per-user in analytics pipelines
+perspective_cross_coverage_opened  (content_id — user tapped "Read cross-coverage")
+perspective_lens_changed  (civic_user: true — new preference value NOT logged; change event only)
+  -- Lens preference is personal; only the fact of a change is tracked for data quality
 ```

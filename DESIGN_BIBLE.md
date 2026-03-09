@@ -1,5 +1,5 @@
 # Harbor Design Bible
-### Version 1.1 — Aligned with Constitution, Metrics Standard, and Ranking Spec
+### Version 1.2 — Aligned with Constitution v0.2 (includes Perspective §11), Metrics Standard, and Ranking Spec
 
 ---
 
@@ -384,7 +384,7 @@ A visually and structurally separate environment for political/civic content.
 
 **Content requirements in Civic Lane:**
 - Every item labeled: Opinion / Reporting / First-hand / Satire — visible on the card face, not just in a panel
-- "Source context" card available on tap (not tooltip — full expandable panel)
+- "Source context" card available on tap (not tooltip — full expandable panel); this is the full Civic Perspective Panel (see §3.12)
 - Share friction doubled — cooldown extended to 10 seconds, plus explicit confirmation step
 - Broadcast reshare requires an additional step beyond friend/group share
 - Diversity constraint: the algorithm enforces ideological balance within a deck. This is labeled on the deck: "Showing a range of perspectives on [topic]. Adjust." User is never left to wonder why they're seeing something they don't agree with.
@@ -496,6 +496,127 @@ When distribution of a piece of content is limited due to policy, spam controls,
 - Appeal path is always present unless the violation is for content that would enable abuse if the path were disclosed (spam/bot evasion edge case — must be documented and reviewed).
 - Visual treatment: uses `--accent-caution` (amber), not red. Not alarming. Just honest.
 - This component is part of the Profile → Notices screen for the author, and appears inline when the author views their own post.
+
+### 3.12 Perspective Card (News Context Layer)
+
+Perspective is Harbor's context layer for news links. It surfaces outlet reliability context for all users and, inside Civic Lane only, framing breadth. It is purely informational — it influences no ranking, no enforcement, and no feed composition.
+
+**Two tiers:**
+- **Tier 1 — Universal:** reliability context shown on any link card resolving to a known news outlet, collapsed by default, available in all intents
+- **Tier 2 — Civic-only:** all of Tier 1 plus framing breadth (the coverage dot grid with directional grouping). Never shown outside Civic Lane regardless of any setting.
+
+#### Collapsed state (link card — all users)
+
+```
+┌─────────────────────────────────┐
+│  [Globe icon]  Associated Press │
+│  apnews.com · ~4 min read       │
+│  ─────────────────              │
+│  ● ● ● ● ● ●  6 sources         │  ← neutral dot strip — breadth only
+│  Reliability: Established       │  ← plain-language tier label
+│                    [Context ›]  │
+└─────────────────────────────────┘
+```
+
+The dot strip in this collapsed view is decorative-informational — it communicates that multiple outlets covered this story. Dots are all `--accent-primary` (no framing implied).
+
+#### Expanded Perspective Panel (all users)
+
+Tapping "Context" opens a bottom sheet.
+
+```
+Perspective
+──────────────────────────────────────
+Associated Press   apnews.com
+
+Reliability range: Established – High
+  Rated by AllSides · MBFC · NewsGuard
+  Last updated Jan 2026
+
+Coverage: 6 outlets reported this story
+  ● ● ● ● ● ●
+  [AP] [Reuters] [BBC] [WSJ] [Guardian] [NPR]
+      (tap any dot to see outlet name)
+
+[Read cross-coverage ›]
+[What is Perspective? ›]
+```
+
+#### Civic Lane Perspective Panel (Civic opt-in only)
+
+Inside Civic Lane the same panel adds a framing breadth section below the coverage dots:
+
+```
+Perspective
+──────────────────────────────────────
+Associated Press   apnews.com
+
+Reliability range: Established – High
+  Rated by AllSides · MBFC · NewsGuard
+  Last updated Jan 2026
+
+Coverage: 6 outlets reported this story
+  Left-leaning    ● ●       (2)
+  Center          ● ● ●     (3)
+  Right-leaning   ●         (1)
+  Unknown / N/A             (0)
+      (tap any dot to see outlet name)
+
+Lens: All   [Adjust ›]
+
+[Read cross-coverage ›]
+[What is Perspective? ›]
+```
+
+The framing rows are plain text labels with dots — never a bar, never a percentage, never a proportion. The dot count conveys "this many outlets with this framing covered the story." It does not show what fraction of coverage came from any direction.
+
+#### Coverage dot grid design (Option C)
+
+- Each dot represents one outlet that covered the story
+- Dots: 8px circles, same color within framing category (Civic) or uniform color (non-Civic)
+- **Non-Civic:** all dots `--accent-primary` — neutral, no framing implied
+- **Civic framing grouping:**
+  - Left-leaning: `--accent-civic` (muted purple)
+  - Center: `--accent-primary` (blue-grey)
+  - Right-leaning: `--accent-caution` (warm amber)
+  - Unknown / N/A: `--text-muted`
+- Maximum 12 dots displayed; "…and N more outlets" for wider coverage
+- Tapping a dot shows the outlet name only — never a framing label in non-Civic context; in Civic context the framing direction is shown alongside the name
+- No proportional bars. No percentages. No "X% left" anywhere in the UI.
+
+#### Reliability tier labels
+
+Harbor maps rater ranges to plain-language tiers. Never a single score; always shown as a range:
+
+| Displayed Label | Meaning |
+|---|---|
+| `Established – High` | High credibility across multiple raters; raters largely agree |
+| `Generally reliable` | Mid-to-high range; some variation across raters |
+| `Mixed` | Raters disagree significantly; range is wide |
+| `Disputed` | Low credibility range across most raters |
+| `Not enough data` | Outlet is new, small, or not yet rated |
+
+Rater names and last-updated date are always shown directly in the panel. Language is always "raters say X" — never "Harbor rates this outlet X."
+
+#### Lens system (Civic only)
+
+Users who have opted into Civic Lane may set a framing lens: All / Left-leaning / Center / Right-leaning.
+
+- Lens affects which outlets appear in the cross-coverage reader — it does **not** affect deck composition, feed ranking, or any algorithm
+- Active lens is always shown as a small persistent label in the panel: "Lens: Center"
+- Clearing the lens resets to All
+- This is a reader convenience tool, not a filter that narrows the user's information environment
+
+#### Rules
+
+- No framing bar chart, no framing percentage, no framing score — ever. Dots show presence, not proportion.
+- Reliability context is universal but collapsed by default — it should never feel intrusive or foregrounded.
+- Framing data (L/C/R grouping, framing labels on dots, the lens control) is available only inside Civic Lane. This is a constitutional boundary (§11) and cannot be changed through settings.
+- Perspective panel is purely informational. It has no controls that affect ranking, enforcement, or distribution.
+- "What is Perspective?" always links to a plain-language explanation of the methodology and rater sources.
+- The panel never uses the word "bias." Use "framing tendency" or "framing direction."
+- Perspective only appears on link cards that resolve to a known news outlet. It does not appear on original posts, images, or non-news links.
+- Harbor does not display Perspective data on the creator's own post view or in any place where it could read as an editorial judgment about the creator.
 
 ---
 
@@ -657,6 +778,10 @@ These are not aspirational prohibitions — they are structural constraints enfo
 | Trending outrage bucket | Hijacks any intent with whatever's inflammatory today | No global trending feed. Explore has curated topic browsing only. |
 | Covert moderation / shadow banning | Users assume manipulation when they can't tell what's happening | Enforcement notices are required for all reach-impacting actions, with appeal paths |
 | Silent political injection | Compounds distrust and political manipulation | Civic content is opt-in and stays in its lane; never silently inserted elsewhere |
+| Perspective framing bar | A proportional L/C/R bar implies Harbor is measuring "how liberal/conservative" a source is — screenshot-clippable as "Harbor's bias meter" | Dot grid (§3.12): shows breadth of coverage, not proportional lean |
+| Single outlet reliability score | Collapses rater disagreement into a false Harbor-issued verdict | Reliability range label + named rater attribution; disagreement shown honestly |
+| Framing labels outside Civic Lane | Any framing label shown to non-Civic users constitutes silent political injection | All dots are uniform color outside Civic; framing labels are constitutionally gated (§11) |
+| "Harbor rates this outlet" language | Makes Harbor the arbiter of ideology or credibility | Always "raters say" / "rated by AllSides, MBFC, NewsGuard" — never "Harbor rates" |
 
 ---
 

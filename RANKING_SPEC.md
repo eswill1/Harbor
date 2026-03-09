@@ -1,5 +1,5 @@
 # Harbor Ranking Spec
-### Version 0.1
+### Version 0.2 — Aligned with Constitution v0.2 (includes Perspective §11), Implementation Plan v1.2
 
 ---
 
@@ -342,6 +342,11 @@ Civic diversity sampling must be labeled: "Showing a range of perspectives on [t
 - More friction for broadcast resharing
 - Faster dampening when dogpile/brigading signals appear
 
+**Perspective integration (Civic only)**
+- News link cards in Civic decks show the full Perspective panel: reliability range + framing-grouped coverage dot grid
+- The user's lens preference (`perspective_user_lens.framing_preference`) may affect which articles surface in the cross-coverage reader — it does **not** affect deck composition or scoring
+- Perspective data is context shown to the reader; it is never a scoring input, not even in Civic
+
 ---
 
 ### 5.7 Explore (Explicit Discovery Mode)
@@ -427,3 +432,68 @@ Any change to the following is a material change and must pass the RFC, gating, 
 - Arousal or serendipity caps
 - Scoring weights or objectives
 - Default surfaces
+
+---
+
+## 10. Prohibited Signals
+
+This section is the canonical list of signals that are **never allowed as optimization targets or ranking features** in any Harbor model or heuristic. It consolidates rules from the Constitution (§2, §11) and the Ranking Charter into a single enforceable reference.
+
+### 10.1 Compulsion-Proxy Signals (Constitution §2)
+
+These signals are banned as optimization targets because they are proxies for compulsive consumption, not satisfaction:
+
+| Signal | Why Banned |
+|---|---|
+| Time spent / session length / watch time | Optimizes for compulsion, not value |
+| Raw like / reaction count | Rewards viral content regardless of quality |
+| Comment volume | Rewards controversy and outrage |
+| Reshare / repost velocity | Amplifies mobs and misinformation |
+| Refresh frequency | Measures anxiety, not satisfaction |
+| Streaks / daily active pressure | Compulsion loop mechanic |
+| Rage comment ratio | Anger is not engagement quality |
+| Return-to-app rate | Habit formation proxy, not satisfaction |
+
+> **Diagnostic use exception:** Some of these (e.g., reshare velocity, hostile comment ratio) may be used strictly for integrity detection — spam loops, dogpile detection, bot farming. They must never appear as features in the PSI model, usefulness model, or any deck scoring pipeline.
+
+### 10.2 Perspective Data: Fully Prohibited Ranking Signals (Constitution §11)
+
+Perspective data describes news outlet context. It is information *for the reader*, not input *for the algorithm*. The following fields and tables are constitutionally prohibited as features in any ranking model, scoring heuristic, or deck composition query:
+
+| Prohibited Signal | Source | Why |
+|---|---|---|
+| `outlet_reliability_tier` | `perspective_outlets` | Making reliable sources rank higher creates an implicit trust arbiter; this is an editorial judgment Harbor must not make algorithmically |
+| `outlet_framing_direction` | `perspective_coverage` | Any use in ranking constitutes covert political injection — even in Civic Lane |
+| `story_coverage_breadth` | `perspective_coverage` count | Giving widely-covered stories higher scores rewards news virality, not user satisfaction |
+| `framing_lean_score` | derived from `perspective_outlets.rater_data` | Any numeric lean → score mapping in the ranker is political manipulation by another name |
+| `perspective_outlet_id` | `perspective_outlets` | Outlet identity must not be a scoring feature; that would make Harbor an implicit outlet-quality arbiter |
+| `rater_data.*` (any subfield) | `perspective_outlets.rater_data` JSONB | Same as above; disaggregating by rater doesn't make this acceptable |
+| User's `framing_preference` | `perspective_user_lens` | Lens preference is a UI filter for the cross-coverage reader, not a personalization signal for deck content |
+
+**Violation handling:** Any confirmed use of these signals in a ranking model or deck assembly query is a **material Ranking Charter violation** requiring:
+1. Immediate rollback of the affected model/config
+2. An incident report posted to the public transparency log
+3. A constitutional review before re-attempting the experiment
+
+### 10.3 The Narrow Perspective Exception
+
+The only permitted use of Perspective data that touches ranking-adjacent systems is:
+
+> A user's `framing_preference` from `perspective_user_lens` may influence which articles are pre-loaded in the **cross-coverage reader** when the user explicitly taps "Read cross-coverage" inside Civic Lane.
+
+This is permitted because:
+- It is user-initiated (tap required)
+- It affects a secondary reader surface, not the deck
+- It is scoped to Civic Lane only
+- It is disclosed to the user ("Lens: Center — Adjust")
+
+This exception does **not** extend to deck composition, deck scoring, candidate generation, or any part of the Stage A–F pipeline.
+
+### 10.4 Enforcement
+
+The prohibited signal list is enforced through:
+
+1. **Code assertions** in `deck_engine.py` — model feature names are checked against the prohibited list at startup (see Implementation Plan §9.3)
+2. **PR review gate** — any PR touching the ML pipeline or deck engine must include a sign-off from the Compliance Agent confirming no prohibited signals were introduced
+3. **Nightly automated audit** — a test job queries the model's feature importance log and fails if any prohibited signal name appears with non-zero importance
+4. **Transparency report** — the quarterly report includes a section confirming prohibited signal audit results

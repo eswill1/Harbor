@@ -1,5 +1,5 @@
 # Harbor Anti-Drift Constitution
-### Version 0.1
+### Version 0.2
 
 ---
 
@@ -91,6 +91,7 @@ These are seatbelts that cannot be bypassed by growth pressure.
 - Civic content is opt-in as a mode or lane.
 - No silent political injection into other intents.
 - Civic ranking prioritizes source transparency and argument quality over engagement.
+- News source context (Perspective) is governed by §11. Framing data is Civic-only; reliability context is available broadly.
 
 ---
 
@@ -245,6 +246,46 @@ Harbor messaging must be private by design — not private by policy. The follow
 **Auditability without content access**
 - Independent auditors must be able to verify correct cryptographic implementation without accessing message content.
 - Open-source client cryptography libraries and reproducible builds are used where possible so implementations are inspectable.
+
+---
+
+## 11. Perspective: News Context and Source Transparency
+
+Perspective is Harbor's context layer for news and current events. It makes framing visible and cross-reading effortless — without Harbor acting as a truth authority, a bias arbiter, or a covert ranking lever.
+
+**No single neutral verdict**
+- Harbor does not declare any outlet, story, or framing "neutral" or "correct."
+- Outlet attributes (framing tendency, reliability) are always displayed as ranges sourced from multiple independent third-party raters, never collapsed into a single Harbor-issued score.
+- Rater disagreement is shown honestly. When raters diverge, the range widens; Harbor does not average away the uncertainty.
+
+**Framing data is Civic-only; reliability context is universal**
+- The framing axis (political lean: Left ↔ Center ↔ Right) is available only to users who have opted into Civic Lane.
+- Reliability context (source credibility range, coverage breadth, "other outlets covered this") may be shown to all users on news link previews, collapsed by default outside Civic.
+- This boundary cannot be softened without a constitutional amendment. Showing framing data to non-Civic users would be a form of silent political injection.
+
+**Perspective labels are informational. They are not enforcement.**
+- A Perspective label — framing range, reliability range, coverage split — is context for the reader. It is not a policy action.
+- Perspective data must not influence content moderation decisions, distribution limits, or ranking in any pipeline.
+- If a future policy need arises where source credibility becomes relevant to enforcement (e.g., known state-sponsored disinformation), that must be governed by a separate, explicitly documented constitutional article with its own review process. It may not be handled as a Perspective carve-out.
+
+**Separation from ranking**
+- Perspective signals — outlet lean, reliability scores, rater data, lens preferences — must not appear as features in any ranking model or deck composition query, with one narrow exception: a user's chosen Perspective lens may influence context pack selection and, optionally, Civic deck composition when the user has opted into Civic.
+- This exception is user-initiated, Civic-scoped, and must be disclosed. It does not apply to general feed ranking under any circumstances.
+- Any Perspective table in the database schema is considered a prohibited signal source for ranking. Violations of this boundary are treated as material ranking charter violations.
+
+**Methodology disclosure and rater transparency**
+- Harbor must publish which rating organizations are used, the date of last update, and a plain-language description of what each metric means.
+- The criteria for including or excluding a rater must be published and versioned. Criteria must include: published methodology, no direct financial relationship with rated outlets, and a multi-perspective review process.
+- When raters are added, removed, or change their methodology, Harbor publishes what changed and why. This is subject to the RFC process in §6.
+
+**Dispute handling**
+- Outlets may report factual mapping errors to Harbor (wrong domain → outlet identity assignment). Harbor will investigate and correct verified errors.
+- Disputes about lean or reliability categorization are directed to the relevant third-party raters. Harbor does not hand-rate ideology.
+- Harbor publishes the dispute process and resolution timelines in its transparency report.
+
+**Versioning**
+- Perspective clustering logic, rater sources, and context pack rules are versioned. Changes require an RFC per §6.
+- Users must be able to see which version of Perspective is active and what changed in plain language.
 
 ---
 

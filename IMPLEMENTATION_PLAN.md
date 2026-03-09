@@ -1,5 +1,5 @@
 # Harbor Implementation Plan
-### Version 1.1 — Aligned with Constitution, Metrics Standard, and Ranking Spec
+### Version 1.2 — Aligned with Constitution v0.2 (includes Perspective §11), Design Bible v1.2, Metrics Standard, and Ranking Spec
 
 ---
 
@@ -247,6 +247,52 @@ CREATE TABLE ranking_rfcs (
   shipped_at     TIMESTAMPTZ,
   rolled_back_at TIMESTAMPTZ
 );
+
+-- ─────────────────────────────────────────────────────────────────────
+-- PERSPECTIVE: News context layer
+-- WARNING: Data in these tables is PROHIBITED as a ranking signal.
+-- Constitution §11: "Any Perspective table in the database schema is
+-- considered a prohibited signal source for ranking."
+-- ─────────────────────────────────────────────────────────────────────
+
+-- Known outlet registry
+CREATE TABLE perspective_outlets (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  domain           TEXT UNIQUE NOT NULL,   -- e.g., "apnews.com"
+  name             TEXT NOT NULL,          -- e.g., "Associated Press"
+  rater_data       JSONB NOT NULL DEFAULT '{}',
+  -- rater_data structure: { "allsides": { "lean": "center", "updated": "2026-01" },
+  --   "mbfc": { "credibility": "high", "updated": "2026-01" },
+  --   "newsguard": { "score": 92, "updated": "2026-01" } }
+  reliability_tier TEXT NOT NULL DEFAULT 'not_enough_data',
+  -- One of: established, generally_reliable, mixed, disputed, not_enough_data
+  -- Derived from rater_data — never a single score, always a range
+  data_version     TEXT NOT NULL,          -- semver; changes trigger RFC per §11
+  last_updated_at  TIMESTAMPTZ DEFAULT NOW(),
+  rater_updated_at TIMESTAMPTZ             -- when source rater data was last refreshed
+);
+
+-- Coverage index: which outlets covered the same story as a given content item
+-- framing_direction is CIVIC-GATED: only returned to clients when civic_opted_in = true
+-- This gate is enforced in the API layer; the column must never be queried in ranking pipelines
+CREATE TABLE perspective_coverage (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_content_id UUID REFERENCES content(id) ON DELETE CASCADE,
+  outlet_id         UUID REFERENCES perspective_outlets(id),
+  coverage_url      TEXT,
+  framing_direction TEXT,     -- 'left', 'center', 'right', 'unknown' — CIVIC-GATED in API
+  detected_at       TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (source_content_id, outlet_id)
+);
+
+-- User's Perspective lens preference (Civic Lane only)
+-- Affects cross-coverage context pack selection only — NOT deck composition or ranking
+CREATE TABLE perspective_user_lens (
+  user_id            UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  framing_preference TEXT NOT NULL DEFAULT 'all', -- 'all', 'left', 'center', 'right'
+  set_at             TIMESTAMPTZ DEFAULT NOW()
+);
+-- ─────────────────────────────────────────────────────────────────────
 
 -- Versioned Ranking Configs (for rollback guarantee)
 CREATE TABLE ranking_config_versions (
@@ -509,6 +555,65 @@ In Civic Lane decks:
 - User can adjust balance preference in settings (not hidden)
 - Harbor explicitly does not choose which political lean is "correct" — balance is structural, not editorial
 
+### 6.3 Perspective System
+
+Perspective is the news context layer (Constitution §11, Design Bible §3.12). It is a read-only information layer — it cannot influence ranking, enforcement, or deck composition.
+
+#### Architecture
+
+```
+Link card submitted / detected as news URL
+   ↓
+Domain normalizer → perspective_outlets lookup
+   ↓ (if outlet found)
+Reliability tier + rater_data fetched
+   ↓
+Coverage scan: check perspective_coverage for matching outlet entries
+   ↓
+API assembles PerspectivePanel response:
+  - reliability_tier + rater_data (all users)
+  - coverage dot list: outlet names only (all users)
+  - framing_direction per dot: ONLY if session.civic_opted_in = true
+```
+
+#### Outlet Data Pipeline
+
+Outlet data is updated on a scheduled basis — not in real time:
+- Rater data (AllSides, MBFC, NewsGuard) is fetched and normalized nightly
+- `data_version` is bumped on any schema or rater methodology change
+- Version changes trigger an RFC per Constitution §11
+- Outlet domain → outlet identity mapping errors can be reported by outlets; Harbor investigates and corrects verified mapping errors only (lean/reliability disputes go to the raters directly)
+
+#### Coverage Detection
+
+When a content item contains a news link:
+1. Extract canonical domain from URL
+2. Look up `perspective_outlets` by domain
+3. Query a story-matching service (Phase 2: embedding similarity over recent articles from all known outlets) to find cross-coverage
+4. Write matches to `perspective_coverage` with `framing_direction = null` initially; framing populated by the outlet's rater data for Civic-gated delivery
+5. Results cached in Redis (TTL: 4 hours per story)
+
+#### Ranking Firewall (non-negotiable)
+
+The following is enforced in code and audited on every PR touching the deck engine or ML pipeline:
+
+```python
+# Constitution §11: Perspective data is a prohibited ranking signal
+PROHIBITED_RANKING_FEATURES = [
+    "perspective_outlets.*",
+    "perspective_coverage.*",
+    "perspective_user_lens.*",
+    "outlet_reliability_tier",
+    "outlet_framing_direction",
+    "story_coverage_breadth",
+    "framing_lean_score",
+]
+# Any use of these features in a ranking model is a material charter violation
+# and requires immediate rollback + a constitutional review.
+```
+
+The single narrow exception: a user's `framing_preference` from `perspective_user_lens` may influence which cross-coverage articles appear in the **context pack reader** when the user taps "Read cross-coverage" inside Civic Lane. This is not a ranking signal — it is a UI filter on a secondary reader surface.
+
 ---
 
 ## 7. Phase Roadmap
@@ -561,6 +666,8 @@ In Civic Lane decks:
 - [ ] Embedding-based shelf affinity
 - [ ] Signal editing UI (full "Why this?" panel with editable signals)
 - [ ] Civic Lane (opt-in, labeled content, balance enforcement, diversity disclosure)
+- [ ] **Perspective v1** — outlet registry (initial seed: ~200 outlets), reliability tier display on all news link cards, coverage dot grid (non-Civic: neutral dots; Civic: framing-grouped dots), expanded Perspective panel, "What is Perspective?" explainer, rater attribution
+- [ ] Perspective framing firewall tests — automated checks that Perspective tables never appear as ranking features
 - [ ] Regret Rate prompt (small rotating cohort, separate from satisfaction prompt)
 - [ ] Mood Delta prompt (opt-in cohort)
 - [ ] Community threads (scoped to shelves/topics)
@@ -659,6 +766,13 @@ GET    /api/explore/creators
 
 GET    /api/civic/preferences
 PATCH  /api/civic/preferences
+GET    /api/civic/lens                        — user's Perspective lens preference (Civic only)
+PATCH  /api/civic/lens                        — update lens preference
+
+GET    /api/perspective/:contentId            — Perspective panel data for a news link card
+       — returns: outlet name, reliability_tier, rater_data, coverage dot list
+       — framing_direction per dot: only returned when requesting user has civic_opted_in = true
+GET    /api/perspective/outlets/:domain       — single outlet lookup (for link-sharing preview)
 
 POST   /api/content/:id/report         — report content
 GET    /api/moderation/notices          — user's enforcement notices (author view)
@@ -738,6 +852,14 @@ assert deck.civic_items_count == 0 or user.civic_opted_in, "Civic content requir
 assert deck.size <= 20, "Decks are finite"
 assert deck.intent == session.selected_intent, "No cross-intent ranking"
 assert all(item.explanation_reason_codes for item in deck.items), "Every item needs an explanation"
+
+# Constitution §11: Perspective data is a prohibited ranking signal
+# Any use of these features triggers an immediate rollback and constitutional review
+assert not any(f in model.feature_names for f in [
+    "outlet_reliability_tier", "outlet_framing_direction",
+    "story_coverage_breadth", "framing_lean_score",
+    "perspective_outlet_id", "perspective_coverage_count",
+]), "Perspective data must never appear as a ranking feature"
 ```
 
 ---
@@ -756,6 +878,8 @@ assert all(item.explanation_reason_codes for item in deck.items), "Every item ne
 | Location | Never collected | — | — |
 | Device sensor data | Never collected | — | — |
 | Ad targeting profile | Never built | — | — |
+| Perspective lens preference | Yes (Civic opt-in users only) | Until user clears it | Yes |
+| Perspective outlet/coverage data | Yes (shared, not user-specific) | Versioned; updated nightly | N/A (public context data) |
 
 ### 10.2 Portability
 
