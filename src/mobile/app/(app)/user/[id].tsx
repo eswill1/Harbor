@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   View,
   Text,
@@ -14,12 +14,15 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { usersApi, UserProfile } from '../../../lib/api'
 import { useAuthStore } from '../../../store/auth'
 import { colors, fontSize, fontFamily, space, radius } from '../../../constants/tokens'
+import { useTheme } from '../../../hooks/useTheme'
 
 export default function UserProfileScreen() {
   const insets      = useSafeAreaInsets()
   const { id }      = useLocalSearchParams<{ id: string }>()
   const accessToken = useAuthStore((s) => s.accessToken)
   const currentUser = useAuthStore((s) => s.user)
+  const theme       = useTheme()
+  const styles      = useMemo(() => makeStyles(theme), [theme])
 
   const [profile, setProfile]   = useState<UserProfile | null>(null)
   const [loading, setLoading]   = useState(true)
@@ -84,14 +87,14 @@ export default function UserProfileScreen() {
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
           onPress={() => router.back()}
         >
-          <ArrowLeft size={22} color={colors.light.textPrimary} weight="regular" />
+          <ArrowLeft size={22} color={theme.textPrimary} weight="regular" />
           <Text style={styles.backLabel}>{"Back"}</Text>
         </Pressable>
       </View>
 
       {loading && (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.light.accentPrimary} />
+          <ActivityIndicator size="large" color={theme.accentPrimary} />
         </View>
       )}
 
@@ -147,7 +150,7 @@ export default function UserProfileScreen() {
               {followLoading ? (
                 <ActivityIndicator
                   size="small"
-                  color={following ? colors.light.textSecondary : '#fff'}
+                  color={following ? theme.textSecondary : '#fff'}
                 />
               ) : (
                 <Text style={[
@@ -166,10 +169,10 @@ export default function UserProfileScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: typeof colors.light) => StyleSheet.create({
   root: {
     flex:            1,
-    backgroundColor: colors.light.bgBase,
+    backgroundColor: c.bgBase,
   },
 
   // Back row
@@ -177,7 +180,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[4],
     paddingVertical:   space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: c.border,
   },
   backBtn: {
     flexDirection: 'row',
@@ -188,7 +191,7 @@ const styles = StyleSheet.create({
   backLabel: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
   },
 
   // Centered states
@@ -201,19 +204,19 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
   retryBtn: {
     paddingVertical:   space[2],
     paddingHorizontal: space[5],
     borderRadius:      radius.md,
     borderWidth:       1,
-    borderColor:       colors.light.border,
+    borderColor:       c.border,
   },
   retryLabel: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.accentPrimary,
+    color:      c.accentPrimary,
   },
 
   // Profile content
@@ -228,7 +231,7 @@ const styles = StyleSheet.create({
     width:           88,
     height:          88,
     borderRadius:    44,
-    backgroundColor: colors.light.accentPrimary,
+    backgroundColor: c.accentPrimary,
     alignItems:      'center',
     justifyContent:  'center',
     marginBottom:    space[2],
@@ -241,14 +244,14 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize:      fontSize.xl,
     fontFamily:    fontFamily.loraBold,
-    color:         colors.light.textPrimary,
+    color:         c.textPrimary,
     letterSpacing: -0.4,
     textAlign:     'center',
   },
   handle: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     marginTop:  -space[2],
   },
 
@@ -259,10 +262,10 @@ const styles = StyleSheet.create({
     marginTop:       space[2],
     paddingVertical: space[4],
     paddingHorizontal: space[6],
-    backgroundColor: colors.light.bgSurface,
+    backgroundColor: c.bgSurface,
     borderRadius:    radius.lg,
     borderWidth:     1,
-    borderColor:     colors.light.border,
+    borderColor:     c.border,
   },
   statItem: {
     flex:       1,
@@ -272,18 +275,18 @@ const styles = StyleSheet.create({
   statCount: {
     fontSize:   fontSize.lg,
     fontFamily: fontFamily.interBold,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
   },
   statLabel: {
     fontSize:   fontSize.xs,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
     letterSpacing: 0.2,
   },
   statDivider: {
     width:           1,
     height:          32,
-    backgroundColor: colors.light.border,
+    backgroundColor: c.border,
     marginHorizontal: space[3],
   },
 
@@ -299,12 +302,12 @@ const styles = StyleSheet.create({
     borderWidth:       1.5,
   },
   followBtnPrimary: {
-    backgroundColor: colors.light.accentPrimary,
-    borderColor:     colors.light.accentPrimary,
+    backgroundColor: c.accentPrimary,
+    borderColor:     c.accentPrimary,
   },
   followBtnSecondary: {
     backgroundColor: 'transparent',
-    borderColor:     colors.light.border,
+    borderColor:     c.border,
   },
   followBtnLabel: {
     fontSize:   fontSize.base,
@@ -314,6 +317,6 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   followBtnLabelSecondary: {
-    color: colors.light.textSecondary,
+    color: c.textSecondary,
   },
 })

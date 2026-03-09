@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   View,
   Text,
@@ -17,12 +17,15 @@ import { router } from 'expo-router'
 import { postsApi } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
 import { colors, fontSize, fontFamily, space, radius } from '../../constants/tokens'
+import { useTheme } from '../../hooks/useTheme'
 
 const MAX_CHARS = 500
 
 export default function ComposeScreen() {
   const insets      = useSafeAreaInsets()
   const accessToken = useAuthStore((s) => s.accessToken)
+  const theme       = useTheme()
+  const styles      = useMemo(() => makeStyles(theme), [theme])
   const [content, setContent]   = useState('')
   const [loading, setLoading]   = useState(false)
 
@@ -58,7 +61,7 @@ export default function ComposeScreen() {
             style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
             onPress={() => router.back()}
           >
-            <ArrowLeft size={22} color={colors.light.textPrimary} weight="regular" />
+            <ArrowLeft size={22} color={theme.textPrimary} weight="regular" />
           </Pressable>
 
           <Text style={styles.title}>{"What's on your mind?"}</Text>
@@ -83,7 +86,7 @@ export default function ComposeScreen() {
           <TextInput
             style={styles.input}
             placeholder={"Share something..."}
-            placeholderTextColor={colors.light.textMuted}
+            placeholderTextColor={theme.textMuted}
             multiline
             value={content}
             onChangeText={setContent}
@@ -104,10 +107,10 @@ export default function ComposeScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: typeof colors.light) => StyleSheet.create({
   root: {
     flex:            1,
-    backgroundColor: colors.light.bgBase,
+    backgroundColor: c.bgBase,
   },
   container: {
     flex: 1,
@@ -121,7 +124,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[4],
     paddingVertical:   space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: c.border,
   },
   backBtn: {
     width:  36,
@@ -132,13 +135,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.loraBold,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
     flex:       1,
     textAlign:  'center',
     paddingHorizontal: space[2],
   },
   postBtn: {
-    backgroundColor:   colors.light.accentPrimary,
+    backgroundColor:   c.accentPrimary,
     paddingVertical:   space[2],
     paddingHorizontal: space[4],
     borderRadius:      radius.full,
@@ -147,7 +150,7 @@ const styles = StyleSheet.create({
     justifyContent:    'center',
   },
   postBtnDisabled: {
-    backgroundColor: colors.light.border,
+    backgroundColor: c.border,
   },
   postBtnLabel: {
     fontSize:   fontSize.sm,
@@ -155,7 +158,7 @@ const styles = StyleSheet.create({
     color:      '#fff',
   },
   postBtnLabelDisabled: {
-    color: colors.light.textMuted,
+    color: c.textMuted,
   },
 
   // Input
@@ -167,7 +170,7 @@ const styles = StyleSheet.create({
     flex:       1,
     fontSize:   fontSize.md,
     fontFamily: fontFamily.lora,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
     lineHeight: 28,
     minHeight:  120,
   },
@@ -181,7 +184,7 @@ const styles = StyleSheet.create({
   counter: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
   },
   counterOver: {
     color: '#D0493A',

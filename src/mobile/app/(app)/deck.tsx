@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   View,
   Text,
@@ -28,6 +28,7 @@ import { colors, fontSize, fontFamily, space, radius, shadow } from '../../const
 import { useSessionStore } from '../../store/session'
 import { useAuthStore } from '../../store/auth'
 import { deckApi, shelvesApi } from '../../lib/api'
+import { useTheme } from '../../hooks/useTheme'
 
 // ─── Source bucket labels ─────────────────────────────────────────────────────
 
@@ -38,11 +39,15 @@ const BUCKET_LABELS: Record<string, string> = {
   discovery: 'Adjacent discovery',
 }
 
-const BUCKET_COLORS: Record<string, string> = {
-  friends:   colors.light.accentPrimary,
-  groups:    colors.light.accentSuccess,
-  shelves:   colors.light.accentCaution,
-  discovery: colors.light.accentCivic,
+// BUCKET_COLORS are resolved from the theme at render time (see getBucketColor)
+function getBucketColor(bucket: string, c: typeof colors.light): string {
+  switch (bucket) {
+    case 'friends':   return c.accentPrimary
+    case 'groups':    return c.accentSuccess
+    case 'shelves':   return c.accentCaution
+    case 'discovery': return c.accentCivic
+    default:          return c.textMuted
+  }
 }
 
 const BUCKET_REASONS: Record<string, string> = {
@@ -64,15 +69,18 @@ function WhyThisPanel({
   card,
   visible,
   onClose,
+  theme,
 }: {
   card:    WhyThisCard | null
   visible: boolean
   onClose: () => void
+  theme:   typeof colors.light
 }) {
   const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(theme), [theme])
   if (!card) return null
 
-  const bucketColor  = BUCKET_COLORS[card.source_bucket] ?? colors.light.textMuted
+  const bucketColor  = getBucketColor(card.source_bucket, theme)
   const bucketLabel  = BUCKET_LABELS[card.source_bucket] ?? card.source_bucket
   const bucketReason = BUCKET_REASONS[card.source_bucket] ?? 'Harbor selected this based on your interests.'
 
@@ -90,10 +98,10 @@ function WhyThisPanel({
         <View style={styles.modalHeader}>
           <View style={styles.modalHandleBar} />
           <View style={styles.modalTitleRow}>
-            <Question size={18} color={colors.light.textPrimary} weight="bold" />
+            <Question size={18} color={theme.textPrimary} weight="bold" />
             <Text style={styles.modalTitle}>Why this?</Text>
             <Pressable onPress={onClose} style={styles.modalCloseBtn} hitSlop={12}>
-              <X size={18} color={colors.light.textMuted} weight="bold" />
+              <X size={18} color={theme.textMuted} weight="bold" />
             </Pressable>
           </View>
         </View>
@@ -120,7 +128,7 @@ function WhyThisPanel({
           <>
             <View style={styles.modalDivider} />
             <View style={[styles.modalSection, styles.modalSerendipityRow]}>
-              <Sparkle size={16} color={colors.light.accentCivic} weight="fill" />
+              <Sparkle size={16} color={theme.accentCivic} weight="fill" />
               <Text style={styles.modalSerendipityText}>
                 This is a serendipity pick — slightly outside your usual interests. Harbor keeps this capped at 10–15% of your deck.
               </Text>
@@ -141,15 +149,17 @@ function WhyThisPanel({
 
 // ─── Completion screen ────────────────────────────────────────────────────────
 
-function CompletionScreen({ onNewDeck, onChangeIntent }: {
+function CompletionScreen({ onNewDeck, onChangeIntent, theme }: {
   onNewDeck:      () => void
   onChangeIntent: () => void
+  theme:          typeof colors.light
 }) {
   const insets     = useSafeAreaInsets()
   const sessionId  = useSessionStore((s) => s.sessionId)
   const accessToken = useAuthStore((s) => s.accessToken)
   const clearDeck  = useSessionStore((s) => s.clearDeck)
   const [selected, setSelected] = useState<1 | 2 | 3 | null>(null)
+  const styles = useMemo(() => makeStyles(theme), [theme])
 
   const handleSatisfaction = async (value: 1 | 2 | 3) => {
     if (!sessionId || !accessToken || selected !== null) return
@@ -169,7 +179,7 @@ function CompletionScreen({ onNewDeck, onChangeIntent }: {
 
   return (
     <View style={[styles.completion, { paddingTop: insets.top + space[8], paddingBottom: insets.bottom + space[6] }]}>
-      <Anchor size={48} color={colors.light.accentPrimary} weight="regular" />
+      <Anchor size={48} color={theme.accentPrimary} weight="regular" />
 
       <Text style={styles.completionTitle}>You're all caught up.</Text>
       <Text style={styles.completionSub}>That was your 20-card deck.</Text>
@@ -213,12 +223,12 @@ function CompletionScreen({ onNewDeck, onChangeIntent }: {
       <View style={styles.completionDivider} />
 
       <Pressable style={styles.secondaryAction} onPress={onNewDeck}>
-        <ArrowsClockwise size={18} color={colors.light.textSecondary} weight="regular" />
+        <ArrowsClockwise size={18} color={theme.textSecondary} weight="regular" />
         <Text style={styles.secondaryActionText}>Load another deck</Text>
       </Pressable>
 
       <Pressable style={styles.secondaryAction} onPress={onChangeIntent}>
-        <ArrowLeft size={18} color={colors.light.textSecondary} weight="regular" />
+        <ArrowLeft size={18} color={theme.textSecondary} weight="regular" />
         <Text style={styles.secondaryActionText}>Switch intent</Text>
       </Pressable>
     </View>
@@ -234,6 +244,8 @@ export default function DeckScreen() {
   const [reloading, setReloading]       = useState(false)
   const [saving, setSaving]             = useState(false)
   const [showWhyThis, setShowWhyThis]   = useState(false)
+  const theme  = useTheme()
+  const styles = useMemo(() => makeStyles(theme), [theme])
 
   const isComplete  = cardIndex >= cards.length && cards.length > 0
   const card        = cards[cardIndex]
@@ -317,9 +329,12 @@ export default function DeckScreen() {
       <CompletionScreen
         onNewDeck={handleNewDeck}
         onChangeIntent={handleChangeIntent}
+        theme={theme}
       />
     )
   }
+
+  const bucketColor = getBucketColor(card.source_bucket, theme)
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -352,9 +367,9 @@ export default function DeckScreen() {
         </Pressable>
 
         {/* Source bucket pill */}
-        <View style={[styles.bucketPill, { backgroundColor: BUCKET_COLORS[card.source_bucket] + '18' }]}>
-          <View style={[styles.bucketDot, { backgroundColor: BUCKET_COLORS[card.source_bucket] }]} />
-          <Text style={[styles.bucketText, { color: BUCKET_COLORS[card.source_bucket] }]}>
+        <View style={[styles.bucketPill, { backgroundColor: bucketColor + '18' }]}>
+          <View style={[styles.bucketDot, { backgroundColor: bucketColor }]} />
+          <Text style={[styles.bucketText, { color: bucketColor }]}>
             {BUCKET_LABELS[card.source_bucket]}
           </Text>
         </View>
@@ -367,17 +382,17 @@ export default function DeckScreen() {
           <Pressable style={styles.actionBtn} onPress={handleSave} disabled={saving}>
             <BookmarkSimple
               size={20}
-              color={saving ? colors.light.accentPrimary : colors.light.textSecondary}
+              color={saving ? theme.accentPrimary : theme.textSecondary}
               weight={saving ? 'fill' : 'regular'}
             />
             <Text style={styles.actionLabel}>Save</Text>
           </Pressable>
           <Pressable style={styles.actionBtn}>
-            <ChatCircle size={20} color={colors.light.textSecondary} weight="regular" />
+            <ChatCircle size={20} color={theme.textSecondary} weight="regular" />
             <Text style={styles.actionLabel}>Reply</Text>
           </Pressable>
           <Pressable style={styles.actionBtn}>
-            <ShareNetwork size={20} color={colors.light.textSecondary} weight="regular" />
+            <ShareNetwork size={20} color={theme.textSecondary} weight="regular" />
             <Text style={styles.actionLabel}>Share</Text>
           </Pressable>
         </View>
@@ -388,6 +403,7 @@ export default function DeckScreen() {
         card={card}
         visible={showWhyThis}
         onClose={() => setShowWhyThis(false)}
+        theme={theme}
       />
 
       {/* ── Footer: Why this? + counter + nav ── */}
@@ -396,7 +412,7 @@ export default function DeckScreen() {
           style={styles.whyThis}
           onPress={() => setShowWhyThis(true)}
         >
-          <Question size={16} color={colors.light.textMuted} weight="regular" />
+          <Question size={16} color={theme.textMuted} weight="regular" />
           <Text style={styles.whyThisText}>Why this?</Text>
         </Pressable>
 
@@ -406,13 +422,13 @@ export default function DeckScreen() {
             onPress={retreatCard}
             disabled={cardIndex === 0}
           >
-            <CaretLeft size={20} color={cardIndex === 0 ? colors.light.textMuted : colors.light.textPrimary} weight="bold" />
+            <CaretLeft size={20} color={cardIndex === 0 ? theme.textMuted : theme.textPrimary} weight="bold" />
           </Pressable>
 
           <Text style={styles.counter}>{cardIndex + 1} of {cards.length}</Text>
 
           <Pressable style={styles.navBtn} onPress={advanceCard}>
-            <CaretRight size={20} color={colors.light.textPrimary} weight="bold" />
+            <CaretRight size={20} color={theme.textPrimary} weight="bold" />
           </Pressable>
         </View>
       </View>
@@ -422,20 +438,20 @@ export default function DeckScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const makeStyles = (c: typeof colors.light) => StyleSheet.create({
   root: {
     flex:            1,
-    backgroundColor: colors.light.bgBase,
+    backgroundColor: c.bgBase,
   },
 
   // Progress
   progressTrack: {
     height:          3,
-    backgroundColor: colors.light.border,
+    backgroundColor: c.border,
   },
   progressFill: {
     height:          3,
-    backgroundColor: colors.light.accentPrimary,
+    backgroundColor: c.accentPrimary,
   },
 
   // Card scroll
@@ -458,7 +474,7 @@ const styles = StyleSheet.create({
     width:           44,
     height:          44,
     borderRadius:    22,
-    backgroundColor: colors.light.accentPrimary,
+    backgroundColor: c.accentPrimary,
     alignItems:      'center',
     justifyContent:  'center',
   },
@@ -473,12 +489,12 @@ const styles = StyleSheet.create({
   creatorName: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interBold,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
   },
   creatorHandle: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
 
   // Bucket pill
@@ -506,7 +522,7 @@ const styles = StyleSheet.create({
   content: {
     fontSize:   fontSize.md,
     fontFamily: fontFamily.lora,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
     lineHeight: 28,
   },
 
@@ -516,7 +532,7 @@ const styles = StyleSheet.create({
     gap:           space[4],
     paddingTop:    space[2],
     borderTopWidth:  1,
-    borderTopColor:  colors.light.border,
+    borderTopColor:  c.border,
   },
   actionBtn: {
     flexDirection: 'row',
@@ -527,7 +543,7 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
 
   // Footer
@@ -538,8 +554,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     paddingTop:      space[3],
     borderTopWidth:  1,
-    borderTopColor:  colors.light.border,
-    backgroundColor: colors.light.bgBase,
+    borderTopColor:  c.border,
+    backgroundColor: c.bgBase,
   },
   whyThis: {
     flexDirection: 'row',
@@ -549,7 +565,7 @@ const styles = StyleSheet.create({
   whyThisText: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
   },
   nav: {
     flexDirection: 'row',
@@ -560,7 +576,7 @@ const styles = StyleSheet.create({
     width:           36,
     height:          36,
     borderRadius:    18,
-    backgroundColor: colors.light.bgElevated,
+    backgroundColor: c.bgElevated,
     alignItems:      'center',
     justifyContent:  'center',
   },
@@ -570,7 +586,7 @@ const styles = StyleSheet.create({
   counter: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     minWidth:   52,
     textAlign:  'center',
   },
@@ -578,7 +594,7 @@ const styles = StyleSheet.create({
   // Completion
   completion: {
     flex:              1,
-    backgroundColor:   colors.light.bgBase,
+    backgroundColor:   c.bgBase,
     alignItems:        'center',
     paddingHorizontal: space[8],
     gap:               space[5],
@@ -586,14 +602,14 @@ const styles = StyleSheet.create({
   completionTitle: {
     fontSize:     fontSize.xl,
     fontFamily:   fontFamily.loraBold,
-    color:        colors.light.textPrimary,
+    color:        c.textPrimary,
     letterSpacing: -0.5,
     textAlign:    'center',
   },
   completionSub: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     marginTop:  -space[3],
   },
   satisfactionRow: {
@@ -604,13 +620,13 @@ const styles = StyleSheet.create({
   satisfactionQ: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
     textAlign:  'center',
   },
   satisfactionThanks: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.accentPrimary,
+    color:      c.accentPrimary,
     textAlign:  'center',
   },
   satisfactionButtons: {
@@ -622,12 +638,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     borderRadius:      radius.md,
     borderWidth:       1.5,
-    borderColor:       colors.light.border,
+    borderColor:       c.border,
     alignItems:        'center',
   },
   satisfactionBtnPrimary: {
-    backgroundColor: colors.light.accentPrimary,
-    borderColor:     colors.light.accentPrimary,
+    backgroundColor: c.accentPrimary,
+    borderColor:     c.accentPrimary,
   },
   satisfactionBtnDimmed: {
     opacity: 0.35,
@@ -635,7 +651,7 @@ const styles = StyleSheet.create({
   satisfactionBtnText: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
   satisfactionBtnTextPrimary: {
     color:      '#fff',
@@ -644,7 +660,7 @@ const styles = StyleSheet.create({
   completionDivider: {
     width:           '100%',
     height:          1,
-    backgroundColor: colors.light.border,
+    backgroundColor: c.border,
   },
   secondaryAction: {
     flexDirection: 'row',
@@ -654,7 +670,7 @@ const styles = StyleSheet.create({
   secondaryActionText: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
 
   // Why This? modal
@@ -663,7 +679,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   modalSheet: {
-    backgroundColor:   colors.light.bgBase,
+    backgroundColor:   c.bgBase,
     borderTopLeftRadius:  radius.lg,
     borderTopRightRadius: radius.lg,
     paddingHorizontal:    space[5],
@@ -675,7 +691,7 @@ const styles = StyleSheet.create({
     width:           40,
     height:          4,
     borderRadius:    2,
-    backgroundColor: colors.light.border,
+    backgroundColor: c.border,
     alignSelf:       'center',
     marginBottom:    space[2],
   },
@@ -691,7 +707,7 @@ const styles = StyleSheet.create({
     flex:       1,
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interBold,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
   },
   modalCloseBtn: {
     padding: space[1],
@@ -711,29 +727,29 @@ const styles = StyleSheet.create({
   modalReason: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
     lineHeight: 22,
   },
   modalDivider: {
     height:          1,
-    backgroundColor: colors.light.border,
+    backgroundColor: c.border,
   },
   modalSectionLabel: {
     fontSize:   fontSize.xs,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
     textTransform: 'uppercase',
     letterSpacing:  0.6,
   },
   modalCreatorName: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interBold,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
   },
   modalCreatorHandle: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     marginTop:  -space[1],
   },
   modalSerendipityRow: {
@@ -745,13 +761,13 @@ const styles = StyleSheet.create({
     flex:       1,
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.accentCivic,
+    color:      c.accentCivic,
     lineHeight: 20,
   },
   modalFootnote: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
     lineHeight: 19,
     paddingBottom: space[2],
   },
@@ -759,7 +775,7 @@ const styles = StyleSheet.create({
   // Empty state
   empty: {
     flex:            1,
-    backgroundColor: colors.light.bgBase,
+    backgroundColor: c.bgBase,
     alignItems:      'center',
     justifyContent:  'center',
     gap:             space[3],
@@ -767,11 +783,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
   emptyLink: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.accentPrimary,
+    color:      c.accentPrimary,
   },
 })

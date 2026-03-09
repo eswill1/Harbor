@@ -19,11 +19,13 @@ import {
 import { queryClient } from '../lib/queryClient'
 import { authApi, usersApi } from '../lib/api'
 import { useAuthStore } from '../store/auth'
+import { useIsDark } from '../hooks/useTheme'
 
 SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
   const { loadRefreshToken, setAuth, isLoading } = useAuthStore()
+  const isDark = useIsDark()
 
   const [interLoaded] = useInterFonts({
     Inter_400Regular,
@@ -75,7 +77,7 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(app)" />

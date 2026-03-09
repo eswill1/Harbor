@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import {
   View,
   Text,
@@ -15,10 +15,13 @@ import { router, useFocusEffect } from 'expo-router'
 import { shelvesApi, Shelf } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
 import { colors, fontSize, fontFamily, space, radius } from '../../constants/tokens'
+import { useTheme } from '../../hooks/useTheme'
 
 export default function ShelvesScreen() {
   const insets      = useSafeAreaInsets()
   const accessToken = useAuthStore((s) => s.accessToken)
+  const theme       = useTheme()
+  const styles      = useMemo(() => makeStyles(theme), [theme])
 
   const [shelves, setShelves] = useState<Shelf[]>([])
   const [loading, setLoading] = useState(true)
@@ -99,7 +102,7 @@ export default function ShelvesScreen() {
         <Text style={styles.rowName}>{item.name}</Text>
         <Text style={styles.rowCount}>{item.item_count} saved</Text>
       </View>
-      <CaretRight size={18} color={colors.light.textMuted} weight="regular" />
+      <CaretRight size={18} color={theme.textMuted} weight="regular" />
     </Pressable>
   )
 
@@ -112,14 +115,14 @@ export default function ShelvesScreen() {
           style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.6 }]}
           onPress={handleCreatePrompt}
         >
-          <Plus size={22} color={colors.light.accentPrimary} weight="bold" />
+          <Plus size={22} color={theme.accentPrimary} weight="bold" />
         </Pressable>
       </View>
 
       {/* ── Body ── */}
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.light.accentPrimary} />
+          <ActivityIndicator size="large" color={theme.accentPrimary} />
         </View>
       ) : (
         <FlatList
@@ -129,7 +132,7 @@ export default function ShelvesScreen() {
           contentContainerStyle={shelves.length === 0 ? styles.emptyContainer : undefined}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <BookmarksSimple size={48} color={colors.light.textMuted} weight="regular" />
+              <BookmarksSimple size={48} color={theme.textMuted} weight="regular" />
               <Text style={styles.emptyTitle}>{"No shelves yet"}</Text>
               <Pressable
                 style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.7 }]}
@@ -145,10 +148,10 @@ export default function ShelvesScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: typeof colors.light) => StyleSheet.create({
   container: {
     flex:            1,
-    backgroundColor: colors.light.bgBase,
+    backgroundColor: c.bgBase,
   },
 
   // Header
@@ -159,19 +162,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     paddingVertical:   space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: c.border,
   },
   headerTitle: {
     fontSize:      fontSize.xl,
     fontFamily:    fontFamily.loraBold,
-    color:         colors.light.textPrimary,
+    color:         c.textPrimary,
     letterSpacing: -0.5,
   },
   addBtn: {
     width:           40,
     height:          40,
     borderRadius:    20,
-    backgroundColor: colors.light.bgElevated,
+    backgroundColor: c.bgElevated,
     alignItems:      'center',
     justifyContent:  'center',
   },
@@ -183,8 +186,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     paddingVertical:   space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
-    backgroundColor:   colors.light.bgBase,
+    borderBottomColor: c.border,
+    backgroundColor:   c.bgBase,
   },
   rowContent: {
     flex: 1,
@@ -193,12 +196,12 @@ const styles = StyleSheet.create({
   rowName: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interBold,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
   },
   rowCount: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
 
   // Centered loading
@@ -222,13 +225,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
   emptyBtn: {
     paddingVertical:   space[3],
     paddingHorizontal: space[5],
     borderRadius:      radius.md,
-    backgroundColor:   colors.light.accentPrimary,
+    backgroundColor:   c.accentPrimary,
   },
   emptyBtnLabel: {
     fontSize:   fontSize.base,

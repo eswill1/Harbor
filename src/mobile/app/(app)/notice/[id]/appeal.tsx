@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { moderationApi, ApiError } from '../../../../lib/api'
 import { useAuthStore } from '../../../../store/auth'
 import { colors, fontSize, fontFamily, space, radius } from '../../../../constants/tokens'
+import { useTheme } from '../../../../hooks/useTheme'
 
 const MAX_CHARS = 1000
 
@@ -24,6 +25,8 @@ export default function AppealScreen() {
   const insets      = useSafeAreaInsets()
   const accessToken = useAuthStore((s) => s.accessToken)
   const { id }      = useLocalSearchParams<{ id: string }>()
+  const theme       = useTheme()
+  const styles      = useMemo(() => makeStyles(theme), [theme])
 
   const [noticeContext, setNoticeContext] = useState<string>('')
   const [statement,     setStatement]     = useState('')
@@ -70,7 +73,7 @@ export default function AppealScreen() {
     return (
       <View style={[styles.root, { paddingTop: insets.top }]}>
         <View style={styles.successContainer}>
-          <CheckCircle size={56} color={colors.light.accentSuccess} weight="regular" />
+          <CheckCircle size={56} color={theme.accentSuccess} weight="regular" />
           <Text style={styles.successTitle}>{"Appeal submitted"}</Text>
           <Text style={styles.successBody}>
             {"Most appeals are reviewed within 72 hours. We\u2019ll update your notice when a decision is made."}
@@ -99,7 +102,7 @@ export default function AppealScreen() {
             style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
             onPress={() => router.back()}
           >
-            <ArrowLeft size={22} color={colors.light.textPrimary} weight="regular" />
+            <ArrowLeft size={22} color={theme.textPrimary} weight="regular" />
             <Text style={styles.backLabel}>{"Appeal this decision"}</Text>
           </Pressable>
         </View>
@@ -132,7 +135,7 @@ export default function AppealScreen() {
             value={statement}
             onChangeText={(t) => setStatement(t.slice(0, MAX_CHARS))}
             placeholder={"What should we know?"}
-            placeholderTextColor={colors.light.textMuted}
+            placeholderTextColor={theme.textMuted}
             multiline
             textAlignVertical="top"
             maxLength={MAX_CHARS}
@@ -170,10 +173,10 @@ export default function AppealScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: typeof colors.light) => StyleSheet.create({
   root: {
     flex:            1,
-    backgroundColor: colors.light.bgBase,
+    backgroundColor: c.bgBase,
   },
 
   // Back row
@@ -181,7 +184,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[4],
     paddingVertical:   space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: c.border,
   },
   backBtn: {
     flexDirection: 'row',
@@ -192,7 +195,7 @@ const styles = StyleSheet.create({
   backLabel: {
     fontSize:      fontSize.md,
     fontFamily:    fontFamily.loraBold,
-    color:         colors.light.textPrimary,
+    color:         c.textPrimary,
     letterSpacing: -0.3,
     flexShrink:    1,
   },
@@ -210,13 +213,13 @@ const styles = StyleSheet.create({
   explanation: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     lineHeight: 24,
   },
 
   // Context box (read-only)
   contextBox: {
-    backgroundColor: colors.light.bgElevated,
+    backgroundColor: c.bgElevated,
     borderRadius:    radius.md,
     padding:         space[4],
     gap:             space[2],
@@ -224,14 +227,14 @@ const styles = StyleSheet.create({
   contextLabel: {
     fontSize:   fontSize.xs,
     fontFamily: fontFamily.interBold,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   contextText: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.lora,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     lineHeight: 22,
   },
 
@@ -242,41 +245,41 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.interMedium,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
   textInput: {
     borderWidth:       1,
-    borderColor:       colors.light.border,
+    borderColor:       c.border,
     borderRadius:      radius.md,
     padding:           space[4],
     minHeight:         160,
     fontSize:          fontSize.base,
     fontFamily:        fontFamily.inter,
-    color:             colors.light.textPrimary,
-    backgroundColor:   colors.light.bgSurface,
+    color:             c.textPrimary,
+    backgroundColor:   c.bgSurface,
   },
   charCounter: {
     fontSize:   fontSize.xs,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
     textAlign:  'right',
   },
   charCounterOver: {
-    color: colors.light.accentCaution,
+    color: c.accentCaution,
   },
 
   // Error box
   errorBox: {
-    backgroundColor: colors.light.accentCaution + '18',
+    backgroundColor: c.accentCaution + '18',
     borderLeftWidth:  3,
-    borderLeftColor:  colors.light.accentCaution,
+    borderLeftColor:  c.accentCaution,
     borderRadius:     radius.sm,
     padding:          space[4],
   },
   errorText: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
     lineHeight: 22,
   },
 
@@ -285,7 +288,7 @@ const styles = StyleSheet.create({
     paddingVertical:   space[4],
     paddingHorizontal: space[5],
     borderRadius:      radius.md,
-    backgroundColor:   colors.light.accentPrimary,
+    backgroundColor:   c.accentPrimary,
     alignItems:        'center',
     justifyContent:    'center',
     minHeight:         52,
@@ -310,14 +313,14 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize:      fontSize.xl,
     fontFamily:    fontFamily.loraBold,
-    color:         colors.light.textPrimary,
+    color:         c.textPrimary,
     letterSpacing: -0.5,
     textAlign:     'center',
   },
   successBody: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     lineHeight: 24,
     textAlign:  'center',
   },
@@ -326,7 +329,7 @@ const styles = StyleSheet.create({
     paddingVertical:   space[4],
     paddingHorizontal: space[8],
     borderRadius:      radius.md,
-    backgroundColor:   colors.light.accentPrimary,
+    backgroundColor:   c.accentPrimary,
   },
   doneBtnLabel: {
     fontSize:   fontSize.base,

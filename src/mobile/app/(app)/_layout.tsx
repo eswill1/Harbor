@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { Tabs, router } from 'expo-router'
 import { useAuthStore } from '../../store/auth'
-import { colors } from '../../constants/tokens'
 import {
   Anchor,
   BookmarksSimple,
@@ -9,9 +8,11 @@ import {
   PencilLine,
   User,
 } from 'phosphor-react-native'
+import { useTheme } from '../../hooks/useTheme'
 
 export default function AppLayout() {
   const accessToken = useAuthStore((s) => s.accessToken)
+  const theme = useTheme()
 
   // If not authenticated, redirect to login
   useEffect(() => {
@@ -24,11 +25,11 @@ export default function AppLayout() {
     <Tabs
       screenOptions={{
         headerShown:      false,
-        tabBarActiveTintColor:   colors.light.accentPrimary,
-        tabBarInactiveTintColor: colors.light.textMuted,
+        tabBarActiveTintColor:   theme.accentPrimary,
+        tabBarInactiveTintColor: theme.textMuted,
         tabBarStyle: {
-          backgroundColor: colors.light.bgSurface,
-          borderTopColor:  colors.light.border,
+          backgroundColor: theme.bgSurface,
+          borderTopColor:  theme.border,
           borderTopWidth:  1,
         },
         tabBarLabelStyle: {

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { router, useFocusEffect } from 'expo-router'
 import { feedApi, FeedPost } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
 import { colors, fontSize, fontFamily, space, radius } from '../../constants/tokens'
+import { useTheme } from '../../hooks/useTheme'
 
 function timeAgo(iso: string): string {
   const diff  = Date.now() - new Date(iso).getTime()
@@ -29,6 +30,8 @@ function timeAgo(iso: string): string {
 export default function FollowingScreen() {
   const insets      = useSafeAreaInsets()
   const accessToken = useAuthStore((s) => s.accessToken)
+  const theme       = useTheme()
+  const styles      = useMemo(() => makeStyles(theme), [theme])
 
   const [posts,       setPosts]       = useState<FeedPost[]>([])
   const [total,       setTotal]       = useState(0)
@@ -111,7 +114,7 @@ export default function FollowingScreen() {
     if (!loadingMore) return null
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color={colors.light.accentPrimary} />
+        <ActivityIndicator size="small" color={theme.accentPrimary} />
       </View>
     )
   }
@@ -125,7 +128,7 @@ export default function FollowingScreen() {
           <Text style={styles.headerSubtitle}>{"Posts from people you follow"}</Text>
         </View>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.light.accentPrimary} />
+          <ActivityIndicator size="large" color={theme.accentPrimary} />
         </View>
       </View>
     )
@@ -172,13 +175,13 @@ export default function FollowingScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={colors.light.accentPrimary}
+            tintColor={theme.accentPrimary}
           />
         }
         contentContainerStyle={posts.length === 0 ? styles.emptyContainer : undefined}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <UsersThree size={48} color={colors.light.accentPrimary} weight="regular" />
+            <UsersThree size={48} color={theme.accentPrimary} weight="regular" />
             <Text style={styles.emptyTitle}>{"Nothing here yet."}</Text>
             <Text style={styles.emptySubtitle}>
               {"Follow people from their profiles to see their posts."}
@@ -195,10 +198,10 @@ export default function FollowingScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: typeof colors.light) => StyleSheet.create({
   container: {
     flex:            1,
-    backgroundColor: colors.light.bgBase,
+    backgroundColor: c.bgBase,
   },
 
   // Header
@@ -207,19 +210,19 @@ const styles = StyleSheet.create({
     paddingTop:        space[4],
     paddingBottom:     space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
+    borderBottomColor: c.border,
     gap:               4,
   },
   headerTitle: {
     fontSize:      fontSize.xl,
     fontFamily:    fontFamily.loraBold,
-    color:         colors.light.textPrimary,
+    color:         c.textPrimary,
     letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
 
   // Post item
@@ -227,8 +230,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     paddingVertical:   space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.border,
-    backgroundColor:   colors.light.bgBase,
+    borderBottomColor: c.border,
+    backgroundColor:   c.bgBase,
     gap:               space[2],
   },
   postHeader: {
@@ -242,7 +245,7 @@ const styles = StyleSheet.create({
     width:           44,
     height:          44,
     borderRadius:    22,
-    backgroundColor: colors.light.accentPrimary,
+    backgroundColor: c.accentPrimary,
     alignItems:      'center',
     justifyContent:  'center',
   },
@@ -260,12 +263,12 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interBold,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
   },
   handle: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
 
   // Body
@@ -273,14 +276,14 @@ const styles = StyleSheet.create({
     fontSize:   fontSize.base,
     fontFamily: fontFamily.lora,
     lineHeight: 24,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
   },
 
   // Timestamp
   timestamp: {
     fontSize:   fontSize.xs,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textMuted,
+    color:      c.textMuted,
     textAlign:  'right',
   },
 
@@ -302,13 +305,13 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
   retryBtn: {
     paddingVertical:   space[3],
     paddingHorizontal: space[5],
     borderRadius:      radius.md,
-    backgroundColor:   colors.light.accentPrimary,
+    backgroundColor:   c.accentPrimary,
   },
   retryBtnLabel: {
     fontSize:   fontSize.base,
@@ -330,13 +333,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize:   fontSize.md,
     fontFamily: fontFamily.loraBold,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
     textAlign:  'center',
   },
   emptySubtitle: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
     textAlign:  'center',
     lineHeight: 24,
   },
@@ -345,11 +348,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     borderRadius:      radius.md,
     borderWidth:       1,
-    borderColor:       colors.light.accentPrimary,
+    borderColor:       c.accentPrimary,
   },
   emptyBtnLabel: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interBold,
-    color:      colors.light.accentPrimary,
+    color:      c.accentPrimary,
   },
 })

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { useAuthStore } from '../../store/auth'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { colors, fontSize, fontFamily, space } from '../../constants/tokens'
+import { useTheme } from '../../hooks/useTheme'
 
 interface FormErrors {
   handle?:       string
@@ -28,6 +29,8 @@ interface FormErrors {
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets()
   const { setAuth } = useAuthStore()
+  const theme = useTheme()
+  const styles = useMemo(() => makeStyles(theme), [theme])
 
   const [handle,      setHandle]      = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -146,10 +149,10 @@ export default function RegisterScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: typeof colors.light) => StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: colors.light.bgBase,
+    backgroundColor: c.bgBase,
   },
   container: {
     flexGrow:          1,
@@ -162,13 +165,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize:   fontSize.xl,
     fontFamily: fontFamily.interBold,
-    color:      colors.light.textPrimary,
+    color:      c.textPrimary,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
   form: {
     gap: space[4],
@@ -183,11 +186,11 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.inter,
-    color:      colors.light.textSecondary,
+    color:      c.textSecondary,
   },
   footerLink: {
     fontSize:   fontSize.sm,
     fontFamily: fontFamily.interSemibold,
-    color:      colors.light.accentPrimary,
+    color:      c.accentPrimary,
   },
 })
