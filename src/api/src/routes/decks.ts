@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify'
+import { loadActiveConfig, RankingConfig } from '../lib/rankingConfig'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -249,11 +250,50 @@ function buildStubDeck(intent: IntentId): StubCard[] {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function arousalBand(score: number | null): ArousalBand {
+function arousalBand(score: number | null, config?: { arousal_high_threshold: number; arousal_medium_threshold: number }): ArousalBand {
   if (score === null) return 'low'
-  if (score < 0.34)  return 'low'
-  if (score < 0.67)  return 'medium'
+  const high = config?.arousal_high_threshold   ?? 0.67
+  const med  = config?.arousal_medium_threshold ?? 0.34
+  if (score < med)  return 'low'
+  if (score < high) return 'medium'
   return 'high'
+}
+
+/**
+ * Enforce high-arousal placement rules from the active ranking config:
+ * 1. Cap total high-arousal cards at config.high_arousal_max_per_deck
+ *    (extras are downgraded to 'medium' in the response — DB score unchanged)
+ * 2. Ensure no two consecutive high-arousal cards
+ *    (second is swapped with the next non-high card)
+ */
+function enforceArousalConstraints(cards: StubCard[], config: RankingConfig): StubCard[] {
+  let result = [...cards]
+
+  // Step 1: break up consecutive high-arousal pairs
+  if (config.high_arousal_non_consecutive) {
+    for (let i = 0; i < result.length - 1; i++) {
+      if (result[i].arousal_band === 'high' && result[i + 1].arousal_band === 'high') {
+        const swapIdx = result.findIndex((c, j) => j > i + 1 && c.arousal_band !== 'high')
+        if (swapIdx !== -1) {
+          ;[result[i + 1], result[swapIdx]] = [result[swapIdx], result[i + 1]]
+        }
+      }
+    }
+  }
+
+  // Step 2: cap total high-arousal count (downgrade excess in response only)
+  let highSeen = 0
+  result = result.map((card) => {
+    if (card.arousal_band === 'high') {
+      highSeen++
+      if (highSeen > config.high_arousal_max_per_deck) {
+        return { ...card, arousal_band: 'medium' as ArousalBand }
+      }
+    }
+    return card
+  })
+
+  return result.map((card, i) => ({ ...card, position: i + 1 }))
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -274,6 +314,8 @@ export default async function deckRoutes(app: FastifyInstance) {
 
     const { userId } = request.user
 
+    const config = await loadActiveConfig(app.db)
+
     const { rows: sessionRows } = await app.db.query<{ id: string }>(
       'INSERT INTO sessions (user_id, intent) VALUES ($1, $2) RETURNING id',
       [userId, intent],
@@ -293,8 +335,8 @@ export default async function deckRoutes(app: FastifyInstance) {
          AND c.content_type = 'post'
          AND c.body IS NOT NULL
        ORDER BY c.created_at DESC
-       LIMIT 8`,
-      [userId],
+       LIMIT $2`,
+      [userId, config.friend_limit],
     )
 
     // Query 2: discovery posts (not from followed users, not own posts)
@@ -310,8 +352,8 @@ export default async function deckRoutes(app: FastifyInstance) {
            SELECT followee_id FROM follows WHERE follower_id = $1
          )
        ORDER BY c.created_at DESC
-       LIMIT 15`,
-      [userId],
+       LIMIT $2`,
+      [userId, config.discovery_limit],
     )
 
     let cards: StubCard[]
@@ -328,7 +370,7 @@ export default async function deckRoutes(app: FastifyInstance) {
         },
         content:        post.body,
         source_bucket:  "friends" as SourceBucket,
-        arousal_band:   arousalBand(post.arousal_score),
+        arousal_band:   arousalBand(post.arousal_score, config),
         is_serendipity: false,
       }))
 
@@ -342,7 +384,7 @@ export default async function deckRoutes(app: FastifyInstance) {
         },
         content:        post.body,
         source_bucket:  "discovery" as SourceBucket,
-        arousal_band:   arousalBand(post.arousal_score),
+        arousal_band:   arousalBand(post.arousal_score, config),
         is_serendipity: true,
       }))
 
@@ -350,17 +392,17 @@ export default async function deckRoutes(app: FastifyInstance) {
       const interleaved: StubCard[] = []
       let fi = 0
       let di = 0
-      while (interleaved.length < 20 && (di < discoveryCards.length || fi < friendCards.length)) {
+      while (interleaved.length < config.deck_size && (di < discoveryCards.length || fi < friendCards.length)) {
         if (di < discoveryCards.length) interleaved.push(discoveryCards[di++])
-        if (interleaved.length < 20 && di < discoveryCards.length) interleaved.push(discoveryCards[di++])
-        if (interleaved.length < 20 && fi < friendCards.length) interleaved.push(friendCards[fi++])
+        if (interleaved.length < config.deck_size && di < discoveryCards.length) interleaved.push(discoveryCards[di++])
+        if (interleaved.length < config.deck_size && fi < friendCards.length) interleaved.push(friendCards[fi++])
       }
 
-      cards = interleaved.slice(0, 20).map((card, i) => ({ ...card, position: i + 1 }))
+      cards = interleaved.slice(0, config.deck_size).map((card, i) => ({ ...card, position: i + 1 }))
 
-      // Pad to 20 with stub cards if real content is scarce
-      if (cards.length < 20) {
-        const stubPad = buildStubDeck(intent).slice(0, 20 - cards.length)
+      // Pad to deck_size with stub cards if real content is scarce
+      if (cards.length < config.deck_size) {
+        const stubPad = buildStubDeck(intent).slice(0, config.deck_size - cards.length)
         cards = [
           ...cards,
           ...stubPad.map((c, i) => ({ ...c, position: cards.length + i + 1 })),
@@ -381,7 +423,7 @@ export default async function deckRoutes(app: FastifyInstance) {
       )
 
       if (shelfRows.length > 0) {
-        const SHELF_POSITIONS = [3, 8, 13]
+        const SHELF_POSITIONS = config.shelf_positions
         const slotsToFill     = Math.min(shelfRows.length, SHELF_POSITIONS.length)
 
         for (let s = 0; s < slotsToFill; s++) {
@@ -398,7 +440,7 @@ export default async function deckRoutes(app: FastifyInstance) {
               },
               content:        shelfRow.body,
               source_bucket:  "shelves",
-              arousal_band:   arousalBand(shelfRow.arousal_score),
+              arousal_band:   arousalBand(shelfRow.arousal_score, config),
               is_serendipity: false,
             }
           }
@@ -410,6 +452,8 @@ export default async function deckRoutes(app: FastifyInstance) {
     } else {
       cards = buildStubDeck(intent)
     }
+
+    cards = enforceArousalConstraints(cards, config)
 
     return reply.send({ session_id, intent, cards })
   })
