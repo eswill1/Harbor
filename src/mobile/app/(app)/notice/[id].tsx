@@ -12,9 +12,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, Warning, ArrowSquareOut, SealCheck } from 'phosphor-react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 
-import { moderationApi, Notice, Appeal, NoticeType } from '../../../../lib/api'
-import { useAuthStore } from '../../../../store/auth'
-import { colors, fontSize, fontFamily, space, radius } from '../../../../constants/tokens'
+import { moderationApi, Notice, Appeal, NoticeType } from '../../../lib/api'
+import { useAuthStore } from '../../../store/auth'
+import { colors, fontSize, fontFamily, space, radius } from '../../../constants/tokens'
 
 const NOTICE_DISPLAY_NAMES: Record<NoticeType, string> = {
   content_labeled:              'Label applied',

@@ -14,9 +14,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, CheckCircle } from 'phosphor-react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 
-import { moderationApi, ApiError } from '../../../../../lib/api'
-import { useAuthStore } from '../../../../../store/auth'
-import { colors, fontSize, fontFamily, space, radius } from '../../../../../constants/tokens'
+import { moderationApi, ApiError } from '../../../../lib/api'
+import { useAuthStore } from '../../../../store/auth'
+import { colors, fontSize, fontFamily, space, radius } from '../../../../constants/tokens'
 
 const MAX_CHARS = 1000
 
