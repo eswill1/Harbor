@@ -175,6 +175,64 @@ export const shelvesApi = {
     api.delete<{ ok: boolean }>(`/api/shelves/${shelfId}/items/${contentId}`, token),
 }
 
+// ─── Moderation API ───────────────────────────────────────────────────────────
+
+export type NoticeType =
+  | 'content_labeled'
+  | 'content_interstitial'
+  | 'content_distribution_limited'
+  | 'content_removed'
+  | 'account_feature_limited'
+  | 'account_suspended'
+  | 'account_banned'
+  | 'appeal_outcome'
+
+export type Notice = {
+  id:                    string
+  action_id:             string
+  notice_type:           NoticeType
+  policy_section:        string
+  primary_reason_code:   string
+  plain_summary:         string
+  affected_content_id:   string | null
+  affected_excerpt:      string | null
+  action_taken:          string
+  action_start:          string
+  action_end:            string | null
+  can_repost:            boolean
+  repost_instructions:   string | null
+  appeal_deadline:       string | null
+  appeal_id:             string | null
+  read_at:               string | null
+  created_at:            string
+}
+
+export type Appeal = {
+  id:           string
+  status:       'pending' | 'upheld' | 'overturned'
+  submitted_at: string
+  outcome_note: string | null
+}
+
+export const moderationApi = {
+  getNotices: (token: string, offset = 0) =>
+    api.get<Notice[]>(`/api/moderation/notices?offset=${offset}`, token),
+
+  getNotice: (id: string, token: string) =>
+    api.get<Notice>(`/api/moderation/notices/${id}`, token),
+
+  submitAppeal: (notice_id: string, statement: string | undefined, token: string) =>
+    api.post<Appeal>('/api/moderation/appeals', { notice_id, statement }, token),
+
+  getAppeal: (id: string, token: string) =>
+    api.get<Appeal>(`/api/moderation/appeals/${id}`, token),
+
+  submitReport: (
+    body: { content_id?: string; reported_user_id?: string; reason: string; detail?: string },
+    token: string,
+  ) => api.post<{ ok: boolean }>('/api/moderation/reports', body, token),
+}
+
 // ─── Feed API ─────────────────────────────────────────────────────────────────
 
 export interface FeedPost {
