@@ -258,7 +258,8 @@ export type Appeal = {
 
 export const moderationApi = {
   getNotices: (token: string, offset = 0) =>
-    api.get<Notice[]>(`/api/moderation/notices?offset=${offset}`, token),
+    api.get<{ notices: Notice[]; total: number }>(`/api/moderation/notices?offset=${offset}`, token)
+      .then((r) => r.notices),
 
   getNotice: (id: string, token: string) =>
     api.get<Notice>(`/api/moderation/notices/${id}`, token),

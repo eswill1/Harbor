@@ -6,7 +6,7 @@ import { useMutation } from '@tanstack/react-query'
 import { deckApi, shelvesApi, ApiError, type DeckCard } from '../../../lib/api'
 import { useAuthStore } from '../../../store/auth'
 import { useSessionStore } from '../../../store/session'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 const BUCKET_LABELS: Record<DeckCard['source_bucket'], string> = {
   friends:   'From your friends',
@@ -81,6 +81,7 @@ function WhyThisPanel({ card, onClose }: { card: DeckCard; onClose: () => void }
 
 function SavePanel({ card, onClose }: { card: DeckCard; onClose: () => void }) {
   const { accessToken } = useAuthStore()
+  const qc = useQueryClient()
   const { data: shelves = [] } = useQuery({
     queryKey: ['shelves'],
     queryFn:  () => shelvesApi.list(accessToken!),
@@ -92,6 +93,7 @@ function SavePanel({ card, onClose }: { card: DeckCard; onClose: () => void }) {
     if (!accessToken) return
     await shelvesApi.saveItem(shelfId, card.id, accessToken).catch(() => {})
     setSaved(shelfId)
+    qc.invalidateQueries({ queryKey: ['shelves'] })
     setTimeout(onClose, 800)
   }
 
