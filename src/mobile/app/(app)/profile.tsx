@@ -1,17 +1,25 @@
 import { useState, useEffect, useMemo } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, Pressable, Alert } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { User, SignOut, Bell, CaretRight } from 'phosphor-react-native'
+import { User, SignOut, Bell, CaretRight, Moon } from 'phosphor-react-native'
 import { router } from 'expo-router'
 
 import { authApi, moderationApi } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
+import { useThemeStore, type ThemePreference } from '../../store/theme'
 import { colors, fontSize, fontFamily, space, radius } from '../../constants/tokens'
 import { useTheme } from '../../hooks/useTheme'
+
+const APPEARANCE_OPTIONS: { label: string; value: ThemePreference }[] = [
+  { label: 'System', value: 'system' },
+  { label: 'Light',  value: 'light'  },
+  { label: 'Dark',   value: 'dark'   },
+]
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets()
   const { user, accessToken, clearAuth } = useAuthStore()
+  const { preference, setPreference } = useThemeStore()
   const theme  = useTheme()
   const styles = useMemo(() => makeStyles(theme), [theme])
 
@@ -80,6 +88,35 @@ export default function ProfileScreen() {
           )}
           <CaretRight size={16} color={theme.textMuted} weight="regular" style={styles.navChevron} />
         </Pressable>
+
+        <View style={styles.navRowDivider} />
+
+        {/* ── Appearance row ── */}
+        <View style={styles.appearanceRow}>
+          <Moon size={20} color={theme.textSecondary} weight="regular" />
+          <Text style={styles.navLabel}>{"Appearance"}</Text>
+          <View style={styles.segmentedControl}>
+            {APPEARANCE_OPTIONS.map((opt) => (
+              <Pressable
+                key={opt.value}
+                style={[
+                  styles.segment,
+                  preference === opt.value && styles.segmentActive,
+                ]}
+                onPress={() => setPreference(opt.value)}
+              >
+                <Text
+                  style={[
+                    styles.segmentLabel,
+                    preference === opt.value && styles.segmentLabelActive,
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
       </View>
 
       <TouchableOpacity style={styles.signOutButton} onPress={handleLogout}>
@@ -121,10 +158,10 @@ const makeStyles = (c: typeof colors.light) => StyleSheet.create({
 
   // Nav rows
   navSection: {
-    width:         '100%',
-    marginTop:     space[4],
-    borderTopWidth: 1,
-    borderTopColor: c.border,
+    width:             '100%',
+    marginTop:         space[4],
+    borderTopWidth:    1,
+    borderTopColor:    c.border,
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
@@ -133,6 +170,19 @@ const makeStyles = (c: typeof colors.light) => StyleSheet.create({
     alignItems:        'center',
     paddingHorizontal: space[5],
     paddingVertical:   space[4],
+    gap:               space[3],
+    backgroundColor:   c.bgBase,
+  },
+  navRowDivider: {
+    height:          1,
+    backgroundColor: c.border,
+    marginHorizontal: space[5],
+  },
+  appearanceRow: {
+    flexDirection:     'row',
+    alignItems:        'center',
+    paddingHorizontal: space[5],
+    paddingVertical:   space[3],
     gap:               space[3],
     backgroundColor:   c.bgBase,
   },
@@ -146,12 +196,12 @@ const makeStyles = (c: typeof colors.light) => StyleSheet.create({
     marginLeft: 'auto',
   },
   badge: {
-    minWidth:        20,
-    height:          20,
-    borderRadius:    10,
-    backgroundColor: c.accentCaution,
-    alignItems:      'center',
-    justifyContent:  'center',
+    minWidth:          20,
+    height:            20,
+    borderRadius:      10,
+    backgroundColor:   c.accentCaution,
+    alignItems:        'center',
+    justifyContent:    'center',
     paddingHorizontal: space[1],
   },
   badgeText: {
@@ -160,16 +210,41 @@ const makeStyles = (c: typeof colors.light) => StyleSheet.create({
     color:      '#fff',
   },
 
+  // Appearance segmented control
+  segmentedControl: {
+    flexDirection:   'row',
+    borderRadius:    radius.sm,
+    borderWidth:     1,
+    borderColor:     c.border,
+    backgroundColor: c.bgElevated,
+    overflow:        'hidden',
+  },
+  segment: {
+    paddingHorizontal: space[3],
+    paddingVertical:   space[1] + 2,
+  },
+  segmentActive: {
+    backgroundColor: c.accentPrimary,
+  },
+  segmentLabel: {
+    fontSize:   fontSize.xs,
+    fontFamily: fontFamily.interMedium,
+    color:      c.textSecondary,
+  },
+  segmentLabelActive: {
+    color: '#fff',
+  },
+
   signOutButton: {
-    flexDirection:  'row',
-    alignItems:     'center',
-    gap:            space[2],
+    flexDirection:     'row',
+    alignItems:        'center',
+    gap:               space[2],
     paddingVertical:   space[3],
     paddingHorizontal: space[5],
-    borderRadius:   radius.md,
-    borderWidth:    1,
-    borderColor:    c.border,
-    marginTop:      space[4],
+    borderRadius:      radius.md,
+    borderWidth:       1,
+    borderColor:       c.border,
+    marginTop:         space[4],
   },
   signOutLabel: {
     fontSize:   fontSize.sm,
