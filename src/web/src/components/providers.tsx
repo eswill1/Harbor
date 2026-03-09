@@ -6,12 +6,10 @@ import { useThemeStore } from '../store/theme'
 import { useAuthStore } from '../store/auth'
 import { authApi } from '../lib/api'
 
+// Created at module level so it survives re-renders and is available immediately.
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      retry: 1,
-    },
+    queries: { staleTime: 30_000, retry: 1 },
   },
 })
 
@@ -25,7 +23,6 @@ function ThemeController({ children }: { children: React.ReactNode }) {
     } else if (mode === 'light') {
       root.removeAttribute('data-theme')
     } else {
-      // system
       const mq = window.matchMedia('(prefers-color-scheme: dark)')
       const apply = (dark: boolean) => {
         if (dark) root.setAttribute('data-theme', 'dark')
@@ -67,7 +64,7 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
   if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-base)' }}>
-        <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+        <div className="w-8 h-8 rounded-full border-2 animate-spin"
              style={{ borderColor: 'var(--accent-primary)', borderTopColor: 'transparent' }} />
       </div>
     )
@@ -76,6 +73,8 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+// QueryClientProvider is rendered unconditionally so useMutation/useQuery hooks
+// are always available — even before the localStorage-dependent auth bootstrap runs.
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
