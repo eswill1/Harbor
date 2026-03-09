@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, Warning, ArrowSquareOut, SealCheck } from 'phosphor-react-native'
-import { router, useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router'
 
 import { moderationApi, Notice, Appeal, NoticeType } from '../../../lib/api'
 import { useAuthStore } from '../../../store/auth'
@@ -61,7 +61,7 @@ export default function NoticeDetailScreen() {
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(false)
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!id || !accessToken) return
     setLoading(true)
     moderationApi.getNotice(id, accessToken)
@@ -78,7 +78,7 @@ export default function NoticeDetailScreen() {
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [id, accessToken])
+  }, [id, accessToken]))
 
   if (loading) {
     return (
