@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify'
+import { computeArousalScore } from '../lib/arousal'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,15 +33,17 @@ export default async function postRoutes(app: FastifyInstance) {
 
     const { userId } = request.user
 
+    const arousalScore = computeArousalScore(content)
+
     const { rows } = await app.db.query<PostRow>(
-      `INSERT INTO content (author_id, content_type, body)
-       VALUES ($1, 'post', $2)
+      `INSERT INTO content (author_id, content_type, body, arousal_score)
+       VALUES ($1, 'post', $2, $3)
        RETURNING
          id,
          body,
          created_at,
          author_id`,
-      [userId, content],
+      [userId, content, arousalScore],
     )
 
     const post = rows[0]
