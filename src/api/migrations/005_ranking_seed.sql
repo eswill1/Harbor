@@ -28,7 +28,7 @@ INSERT INTO ranking_rfcs (
   'shipped',
   NOW(),
   NOW()
-);
+) ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO ranking_config_versions (
   version,
@@ -52,4 +52,4 @@ INSERT INTO ranking_config_versions (
   'b1a00000-0000-0000-0000-000000000001',
   NOW(),
   true
-);
+) ON CONFLICT (version) DO NOTHING;
