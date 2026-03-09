@@ -83,11 +83,11 @@ export default function NoticesScreen() {
       const data = await moderationApi.getNotices(accessToken, offset)
       setError(false)
       if (replace) {
-        setNotices(data)
+        setNotices(data.notices)
       } else {
-        setNotices((prev) => [...prev, ...data])
+        setNotices((prev) => [...prev, ...data.notices])
       }
-      setHasMore(data.length === PAGE_SIZE)
+      setHasMore(data.notices.length === PAGE_SIZE)
     } catch {
       setError(true)
     }

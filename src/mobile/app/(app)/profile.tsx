@@ -17,7 +17,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!accessToken) return
     moderationApi.getNotices(accessToken, 0)
-      .then((notices) => {
+      .then(({ notices }) => {
         const count = notices.filter((n) => n.read_at === null).length
         setUnreadCount(count)
       })
