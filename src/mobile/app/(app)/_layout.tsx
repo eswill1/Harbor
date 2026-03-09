@@ -97,6 +97,21 @@ export default function AppLayout() {
         name="shelf/[id]"
         options={{ href: null }}
       />
+      {/* Notices list — navigated to from profile */}
+      <Tabs.Screen
+        name="notices"
+        options={{ href: null }}
+      />
+      {/* Notice detail — navigated to from notices list */}
+      <Tabs.Screen
+        name="notice/[id]"
+        options={{ href: null }}
+      />
+      {/* Appeal form — navigated to from notice detail */}
+      <Tabs.Screen
+        name="notice/[id]/appeal"
+        options={{ href: null }}
+      />
     </Tabs>
   )
 }

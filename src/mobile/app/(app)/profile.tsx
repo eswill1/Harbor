@@ -1,15 +1,30 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
+import { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, Pressable, Alert } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { User, SignOut } from 'phosphor-react-native'
+import { User, SignOut, Bell, CaretRight } from 'phosphor-react-native'
 import { router } from 'expo-router'
 
-import { authApi } from '../../lib/api'
+import { authApi, moderationApi } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
 import { colors, fontSize, fontFamily, space, radius } from '../../constants/tokens'
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets()
   const { user, accessToken, clearAuth } = useAuthStore()
+
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    if (!accessToken) return
+    moderationApi.getNotices(accessToken, 0)
+      .then((notices) => {
+        const count = notices.filter((n) => n.read_at === null).length
+        setUnreadCount(count)
+      })
+      .catch(() => {
+        // Non-critical — ignore silently
+      })
+  }, [accessToken])
 
   const handleLogout = () => {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
@@ -47,6 +62,23 @@ export default function ProfileScreen() {
         </>
       )}
 
+      {/* ── Nav rows ── */}
+      <View style={styles.navSection}>
+        <Pressable
+          style={({ pressed }) => [styles.navRow, pressed && { opacity: 0.7 }]}
+          onPress={() => router.push('/(app)/notices')}
+        >
+          <Bell size={20} color={colors.light.textSecondary} weight="regular" />
+          <Text style={styles.navLabel}>{"Notices"}</Text>
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : String(unreadCount)}</Text>
+            </View>
+          )}
+          <CaretRight size={16} color={colors.light.textMuted} weight="regular" style={styles.navChevron} />
+        </Pressable>
+      </View>
+
       <TouchableOpacity style={styles.signOutButton} onPress={handleLogout}>
         <SignOut size={18} color={colors.light.textSecondary} weight="regular" />
         <Text style={styles.signOutLabel}>Sign out</Text>
@@ -83,6 +115,48 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.inter,
     color:      colors.light.textSecondary,
   },
+
+  // Nav rows
+  navSection: {
+    width:         '100%',
+    marginTop:     space[4],
+    borderTopWidth: 1,
+    borderTopColor: colors.light.border,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.light.border,
+  },
+  navRow: {
+    flexDirection:     'row',
+    alignItems:        'center',
+    paddingHorizontal: space[5],
+    paddingVertical:   space[4],
+    gap:               space[3],
+    backgroundColor:   colors.light.bgBase,
+  },
+  navLabel: {
+    flex:       1,
+    fontSize:   fontSize.base,
+    fontFamily: fontFamily.interMedium,
+    color:      colors.light.textPrimary,
+  },
+  navChevron: {
+    marginLeft: 'auto',
+  },
+  badge: {
+    minWidth:        20,
+    height:          20,
+    borderRadius:    10,
+    backgroundColor: colors.light.accentCaution,
+    alignItems:      'center',
+    justifyContent:  'center',
+    paddingHorizontal: space[1],
+  },
+  badgeText: {
+    fontSize:   fontSize.xs,
+    fontFamily: fontFamily.interBold,
+    color:      '#fff',
+  },
+
   signOutButton: {
     flexDirection:  'row',
     alignItems:     'center',
@@ -92,7 +166,7 @@ const styles = StyleSheet.create({
     borderRadius:   radius.md,
     borderWidth:    1,
     borderColor:    colors.light.border,
-    marginTop:      space[6],
+    marginTop:      space[4],
   },
   signOutLabel: {
     fontSize:   fontSize.sm,
