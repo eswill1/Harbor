@@ -114,7 +114,10 @@ export const deckApi = {
     api.post<DeckResponse>('/api/decks', { intent }, token),
 
   complete: (sessionId: string, satisfaction: 1 | 2 | 3, token: string) =>
-    api.post<{ ok: boolean }>(`/api/sessions/${sessionId}/complete`, { satisfaction }, token),
+    api.post<{ ok: boolean; regret_prompted: boolean }>(`/api/sessions/${sessionId}/complete`, { satisfaction }, token),
+
+  submitRegret: (sessionId: string, regret: 1 | 2 | 3, token: string) =>
+    api.post<{ ok: boolean }>(`/api/sessions/${sessionId}/regret`, { regret }, token),
 }
 
 // ─── Posts API ────────────────────────────────────────────────────────────────

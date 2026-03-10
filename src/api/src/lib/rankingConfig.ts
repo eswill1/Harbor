@@ -24,19 +24,28 @@ export interface RankingConfig {
   high_arousal_max_per_deck:    number
   /** Whether consecutive high-arousal cards are disallowed */
   high_arousal_non_consecutive: boolean
+  /** Fraction of completed sessions that receive the regret prompt (0–1) */
+  regret_cohort_rate:           number
+  /** Regret rate threshold above which an automatic rollback is triggered (0–1) */
+  regret_rate_rollback_threshold: number
+  /** Rolling window in hours over which regret rate is calculated */
+  rollback_window_hours:        number
 }
 
 /** Fallback used if the DB has no active config row. Should never happen in production. */
 export const DEFAULT_CONFIG: RankingConfig = {
-  deck_size:                    20,
-  friend_limit:                 8,
-  discovery_limit:              15,
-  shelf_positions:              [3, 8, 13],
-  serendipity_budget:           0.15,
-  arousal_high_threshold:       0.67,
-  arousal_medium_threshold:     0.34,
-  high_arousal_max_per_deck:    2,
-  high_arousal_non_consecutive: true,
+  deck_size:                      20,
+  friend_limit:                   8,
+  discovery_limit:                15,
+  shelf_positions:                [3, 8, 13],
+  serendipity_budget:             0.15,
+  arousal_high_threshold:         0.67,
+  arousal_medium_threshold:       0.34,
+  high_arousal_max_per_deck:      2,
+  high_arousal_non_consecutive:   true,
+  regret_cohort_rate:             0.15,
+  regret_rate_rollback_threshold: 0.10,
+  rollback_window_hours:          24,
 }
 
 /**

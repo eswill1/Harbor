@@ -470,15 +470,45 @@ export default async function deckRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'satisfaction must be 1, 2, or 3' })
     }
 
+    const config        = await loadActiveConfig(app.db)
+    const inCohort      = Math.random() < config.regret_cohort_rate
+
     const { rowCount } = await app.db.query(
       `UPDATE sessions
-          SET ended_at = NOW(), satisfaction = $1, deck_count = 1
-        WHERE id = $2 AND user_id = $3`,
-      [satisfaction, id, userId],
+          SET ended_at = NOW(), satisfaction = $1, deck_count = 1,
+              regret_prompted = $2, config_version = $3
+        WHERE id = $4 AND user_id = $5`,
+      [satisfaction, inCohort, config.version, id, userId],
     )
 
     if (rowCount === 0) {
       return reply.status(404).send({ error: 'Session not found' })
+    }
+
+    return reply.send({ ok: true, regret_prompted: inCohort })
+  })
+
+  // POST /api/sessions/:id/regret — record regret response (cohort only)
+  app.post('/api/sessions/:id/regret', {
+    preHandler: [app.authenticate],
+  }, async (request, reply) => {
+    const { id }     = request.params as { id: string }
+    const { regret } = request.body as { regret: 1 | 2 | 3 }
+    const { userId } = request.user
+
+    if (![1, 2, 3].includes(regret)) {
+      return reply.status(400).send({ error: 'regret must be 1, 2, or 3' })
+    }
+
+    const { rowCount } = await app.db.query(
+      `UPDATE sessions
+          SET regret = $1
+        WHERE id = $2 AND user_id = $3 AND regret_prompted = true`,
+      [regret, id, userId],
+    )
+
+    if (rowCount === 0) {
+      return reply.status(404).send({ error: 'Session not found or not in regret cohort' })
     }
 
     return reply.send({ ok: true })

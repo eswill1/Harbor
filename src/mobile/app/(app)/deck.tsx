@@ -337,39 +337,50 @@ function CompletionScreen({ onNewDeck, onChangeIntent, theme }: {
   onChangeIntent: () => void
   theme:          typeof colors.light
 }) {
-  const insets     = useSafeAreaInsets()
-  const sessionId  = useSessionStore((s) => s.sessionId)
+  const insets      = useSafeAreaInsets()
+  const sessionId   = useSessionStore((s) => s.sessionId)
   const accessToken = useAuthStore((s) => s.accessToken)
-  const clearDeck  = useSessionStore((s) => s.clearDeck)
-  const [selected, setSelected] = useState<1 | 2 | 3 | null>(null)
-  const styles = useMemo(() => makeStyles(theme), [theme])
+  const styles      = useMemo(() => makeStyles(theme), [theme])
+
+  const [satisfaction, setSatisfaction]     = useState<1 | 2 | 3 | null>(null)
+  const [regretPrompted, setRegretPrompted] = useState(false)
+  const [regret, setRegret]                 = useState<1 | 2 | 3 | null>(null)
+
+  const satisfactionDone = satisfaction !== null
+  const regretDone       = regret !== null
 
   const handleSatisfaction = async (value: 1 | 2 | 3) => {
-    if (!sessionId || !accessToken || selected !== null) return
-    setSelected(value)
+    if (!sessionId || !accessToken || satisfactionDone) return
+    setSatisfaction(value)
     try {
-      await deckApi.complete(sessionId, value, accessToken)
+      const res = await deckApi.complete(sessionId, value, accessToken)
+      if (res.regret_prompted) setRegretPrompted(true)
     } catch {
-      // Non-critical — don't surface to user
-    }
-    if (value === 1) {
-      // "Yes, I'm done" — go back to intent selector
-      onChangeIntent()
+      // Non-critical
     }
   }
 
-  const isDone = selected !== null
+  const handleRegret = async (value: 1 | 2 | 3) => {
+    if (!sessionId || !accessToken || regretDone) return
+    setRegret(value)
+    try {
+      await deckApi.submitRegret(sessionId, value, accessToken)
+    } catch {
+      // Non-critical
+    }
+  }
 
   return (
     <View style={[styles.completion, { paddingTop: insets.top + space[8], paddingBottom: insets.bottom + space[6] }]}>
       <Anchor size={48} color={theme.accentPrimary} weight="regular" />
 
-      <Text style={styles.completionTitle}>You're all caught up.</Text>
-      <Text style={styles.completionSub}>That was your 20-card deck.</Text>
+      <Text style={styles.completionTitle}>{"You're all caught up."}</Text>
+      <Text style={styles.completionSub}>{"That was your 20-card deck."}</Text>
 
+      {/* ── Satisfaction ── */}
       <View style={styles.satisfactionRow}>
         <Text style={styles.satisfactionQ}>
-          {isDone ? 'Thanks for the feedback.' : 'Did you get what you came for?'}
+          {satisfactionDone ? 'Thanks for the feedback.' : 'Did you get what you came for?'}
         </Text>
         <View style={styles.satisfactionEmojis}>
           {([
@@ -377,17 +388,17 @@ function CompletionScreen({ onNewDeck, onChangeIntent, theme }: {
             { emoji: '😐', value: 2 as const },
             { emoji: '😞', value: 3 as const },
           ]).map(({ emoji, value }) => {
-            const isChosen = selected === value
+            const isChosen = satisfaction === value
             return (
               <Pressable
                 key={value}
                 style={[
                   styles.satisfactionEmoji,
                   isChosen && styles.satisfactionEmojiChosen,
-                  isDone && !isChosen && styles.satisfactionEmojiDimmed,
+                  satisfactionDone && !isChosen && styles.satisfactionEmojiDimmed,
                 ]}
                 onPress={() => handleSatisfaction(value)}
-                disabled={isDone}
+                disabled={satisfactionDone}
               >
                 <Text style={[
                   styles.satisfactionEmojiText,
@@ -400,6 +411,43 @@ function CompletionScreen({ onNewDeck, onChangeIntent, theme }: {
           })}
         </View>
       </View>
+
+      {/* ── Regret prompt (cohort only, shown after satisfaction) ── */}
+      {satisfactionDone && regretPrompted && (
+        <View style={styles.satisfactionRow}>
+          <Text style={styles.satisfactionQ}>
+            {regretDone ? 'Noted — thank you.' : 'Did you regret reading anything?'}
+          </Text>
+          <View style={styles.satisfactionEmojis}>
+            {([
+              { emoji: '👍', value: 1 as const },
+              { emoji: '🤔', value: 2 as const },
+              { emoji: '😬', value: 3 as const },
+            ]).map(({ emoji, value }) => {
+              const isChosen = regret === value
+              return (
+                <Pressable
+                  key={value}
+                  style={[
+                    styles.satisfactionEmoji,
+                    isChosen && styles.satisfactionEmojiChosen,
+                    regretDone && !isChosen && styles.satisfactionEmojiDimmed,
+                  ]}
+                  onPress={() => handleRegret(value)}
+                  disabled={regretDone}
+                >
+                  <Text style={[
+                    styles.satisfactionEmojiText,
+                    isChosen && styles.satisfactionEmojiTextChosen,
+                  ]}>
+                    {emoji}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
+        </View>
+      )}
 
       <View style={styles.completionDivider} />
 

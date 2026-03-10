@@ -1,13 +1,16 @@
 import { FastifyInstance } from 'fastify'
+import { loadActiveConfig } from '../lib/rankingConfig'
 
 /**
- * Admin routes — ranking config and RFC management.
+ * Admin routes — ranking config, RFC management, and metrics.
  * All routes require role === 'admin' in the JWT.
  *
  * GET  /api/admin/ranking-config          — active config + version
  * GET  /api/admin/ranking-config/history  — all config versions (newest first)
  * GET  /api/admin/ranking-rfcs            — all RFCs (newest first)
  * POST /api/admin/ranking-rfcs            — create a new RFC (draft status)
+ * GET  /api/admin/metrics/regret          — regret rate over rolling window
+ * GET  /api/admin/metrics/rollback-events — recent auto-rollback log
  */
 export default async function adminRoutes(app: FastifyInstance) {
 
@@ -95,5 +98,57 @@ export default async function adminRoutes(app: FastifyInstance) {
 
     reply.code(201)
     return reply.send(rows[0])
+  })
+
+  // ── GET /api/admin/metrics/regret ─────────────────────────────────────────
+
+  app.get('/api/admin/metrics/regret', {
+    preHandler: [app.authenticate],
+  }, async (request, reply) => {
+    const { role } = request.user
+    if (role !== 'admin') return reply.forbidden('Admin access required')
+
+    const config      = await loadActiveConfig(app.db)
+    const windowStart = new Date(Date.now() - config.rollback_window_hours * 60 * 60 * 1000)
+
+    const { rows } = await app.db.query(
+      `SELECT
+         COUNT(*)                                    AS total_prompted,
+         COUNT(*) FILTER (WHERE regret IS NOT NULL)  AS total_responded,
+         COUNT(*) FILTER (WHERE regret = 1)          AS no_regret,
+         COUNT(*) FILTER (WHERE regret = 2)          AS some_regret,
+         COUNT(*) FILTER (WHERE regret = 3)          AS full_regret,
+         ROUND(
+           COUNT(*) FILTER (WHERE regret = 3)::numeric /
+           NULLIF(COUNT(*) FILTER (WHERE regret IS NOT NULL), 0) * 100,
+           1
+         ) AS regret_rate_pct
+       FROM sessions
+       WHERE regret_prompted = true
+         AND ended_at >= $1`,
+      [windowStart],
+    )
+
+    return reply.send({
+      window_hours:  config.rollback_window_hours,
+      threshold_pct: config.regret_rate_rollback_threshold * 100,
+      config_version: config.version,
+      ...rows[0],
+    })
+  })
+
+  // ── GET /api/admin/metrics/rollback-events ────────────────────────────────
+
+  app.get('/api/admin/metrics/rollback-events', {
+    preHandler: [app.authenticate],
+  }, async (request, reply) => {
+    const { role } = request.user
+    if (role !== 'admin') return reply.forbidden('Admin access required')
+
+    const { rows } = await app.db.query(
+      `SELECT * FROM ranking_rollback_events ORDER BY triggered_at DESC LIMIT 50`,
+    )
+
+    return reply.send(rows)
   })
 }
