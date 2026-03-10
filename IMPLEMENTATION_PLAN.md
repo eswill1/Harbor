@@ -9,7 +9,7 @@
 2. **Satisfaction is a first-class metric.** The ML pipeline optimizes for session satisfaction scores, not engagement proxies.
 3. **Privacy by architecture.** User signals are processed with minimum necessary data. Preference graphs stay user-controlled and exportable.
 4. **Mobile-first, but not mobile-only.** Native mobile is the primary surface; web is a full peer.
-5. **Scale later.** Build for quality first. Optimize for scale at Phase 3, not Phase 1.
+5. **Scale later.** Build for quality first. Optimize for scale at Phase 4, not Phase 1.
 
 ---
 
@@ -67,14 +67,14 @@
 
 | Component | Choice |
 |---|---|
-| Container orchestration | **Docker Compose (dev) → Docker Compose (VPS Phase 1) → Kubernetes (Phase 3)** |
+| Container orchestration | **Docker Compose (dev) → Docker Compose (VPS Phase 1-2) → Kubernetes (Phase 4)** |
 | CI/CD | **GitHub Actions** |
 | Secrets | **Doppler** |
 | Observability | **OpenTelemetry → Grafana Cloud** |
 | Error tracking | **Sentry** |
-| Hosting (API/Web) | **Ionos VPS (2 vCPU, 2GB RAM, 80GB NVMe) Phase 1 → Fly.io Phase 2 → AWS/Azure Phase 3** |
-| Database hosting | **Supabase (Phase 1-2) → RDS (Phase 3)** |
-| Frontend hosting | **Next.js SSR on VPS behind existing reverse proxy (Phase 1) → Fly.io (Phase 2)** |
+| Hosting (API/Web) | **Ionos VPS (2 vCPU, 2GB RAM, 80GB NVMe) Phase 1-2 → Fly.io Phase 3 → AWS/Azure Phase 4** |
+| Database hosting | **Supabase (Phase 1-3) → RDS (Phase 4)** |
+| Frontend hosting | **Next.js SSR on VPS behind existing reverse proxy (Phase 1-2) → Fly.io (Phase 3)** |
 
 ---
 
@@ -588,7 +588,7 @@ Outlet data is updated on a scheduled basis — not in real time:
 When a content item contains a news link:
 1. Extract canonical domain from URL
 2. Look up `perspective_outlets` by domain
-3. Query a story-matching service (Phase 2: embedding similarity over recent articles from all known outlets) to find cross-coverage
+3. Query a story-matching service (Phase 3: embedding similarity over recent articles from all known outlets) to find cross-coverage
 4. Write matches to `perspective_coverage` with `framing_direction = null` initially; framing populated by the outlet's rater data for Civic-gated delivery
 5. Results cached in Redis (TTL: 4 hours per story)
 
@@ -654,31 +654,48 @@ The single narrow exception: a user's `framing_preference` from `perspective_use
 
 ---
 
-### Phase 2: The Satisfaction Engine (Months 7–12)
-**Goal: ML-powered personalization that genuinely serves the user, with full metrics infrastructure.**
+### Phase 2: Instrumentation & User Value (Months 7–12)
+**Goal: Make the platform measurably better for users already on it — data collection, notifications, creator tools, and metrics visibility. No ML required, stays on VPS.**
 
 #### Deliverables:
-- [ ] Satisfaction model v1 (LightGBM, trained on P1 check-in data)
-- [ ] Deck engine v2 (ML-ranked, intent-specific, Stage A–F pipeline)
-- [ ] Arousal classifier v1 (fine-tuned transformer, 3-band system)
-- [ ] Throttling system with Broadcast Pause UI (no amber in-feed indicator — Design Bible §3.13)
-- [ ] Dogpile detector + auto-dampening (Hostile Reply Rate, Unique Piler Count, Dogpile Velocity)
-- [ ] Serendipity budget (per-user configurable, intent-specific thresholds)
-- [ ] Embedding-based shelf affinity
+- [ ] Notification system (batched, calm, `--accent-primary` badges — follow, reply, shelf save)
+- [ ] Regret Rate prompt (small rotating cohort, separate from satisfaction prompt — feeds Phase 3 ML training)
+- [ ] Mood Delta prompt (opt-in cohort)
+- [ ] Daily metrics dashboard (SSR, RR, AEI, dogpile rate, moderation queue — admin-facing)
+- [ ] Automatic rollback triggers (wired to ranking config versioning from Phase 1)
 - [ ] Signal editing UI (full "Why this?" panel with editable signals)
+- [ ] Creator analytics dashboard (save rate, helpful rate, satisfaction contribution — not follower counts)
+- [ ] Relationship strength scoring (improves friends bucket quality)
+- [ ] Serendipity budget (per-user configurable)
+- [ ] Onboarding flow v2 (serendipity budget, civic opt-in, community joining)
+- [ ] RFC process tooling (public RFC list, gating checklist, rollback triggers)
+
+#### Success metrics:
+- Regret rate < 10% (first measurement)
+- Notification open rate > 30% (calm notifications actually get read)
+- Creator analytics adoption > 50% of active creators
+- Daily metrics dashboard live and reviewed weekly
+- Zero ranking changes shipped without a completed RFC
+
+#### Team: 2–3 engineers, 1 designer
+
+---
+
+### Phase 3: The Satisfaction Engine (Months 13–18)
+**Goal: ML-powered personalization that genuinely serves the user. Migrate to Fly.io. Full metrics infrastructure.**
+
+#### Deliverables:
+- [ ] Satisfaction model v1 (LightGBM, trained on Phase 2 check-in + regret rate data)
+- [ ] Deck engine v2 (ML-ranked, intent-specific, Stage A–F pipeline)
+- [ ] Arousal classifier v1 (fine-tuned transformer, replaces keyword scorer — stable interface maintained)
+- [ ] Throttling system auto-logic (Broadcast Pause UI already exists — Phase 3 adds automatic trigger)
+- [ ] Dogpile detector + auto-dampening (Hostile Reply Rate, Unique Piler Count, Dogpile Velocity)
+- [ ] Embedding-based shelf affinity (pgvector already installed)
 - [ ] Civic Lane (opt-in, labeled content, balance enforcement, diversity disclosure)
 - [ ] **Perspective v1** — outlet registry (initial seed: ~200 outlets), reliability tier display on all news link cards, coverage dot grid (non-Civic: neutral dots; Civic: framing-grouped dots), expanded Perspective panel, "What is Perspective?" explainer, rater attribution
 - [ ] Perspective framing firewall tests — automated checks that Perspective tables never appear as ranking features
-- [ ] Regret Rate prompt (small rotating cohort, separate from satisfaction prompt)
-- [ ] Mood Delta prompt (opt-in cohort)
 - [ ] Community threads (scoped to shelves/topics)
-- [ ] Creator analytics dashboard (save rate, helpful rate, satisfaction contribution — not follower counts)
-- [ ] Relationship strength scoring
-- [ ] Notification system (batched, calm, `--accent-primary` badges)
-- [ ] Onboarding flow v2 (serendipity budget, civic opt-in, community joining)
-- [ ] RFC process tooling (public RFC list, gating checklist, rollback triggers)
-- [ ] Daily metrics dashboard (SSR, RR, AEI, dogpile rate, moderation queue)
-- [ ] Automatic rollback triggers (wired to ranking config versioning from P1)
+- [ ] Infrastructure migration to Fly.io
 - [ ] First public transparency report
 
 #### Success metrics (Metrics Standard Tier 1 + 2 gates):
@@ -693,7 +710,7 @@ The single narrow exception: a user's `framing_preference` from `perspective_use
 
 ---
 
-### Phase 3: Scale & Ecosystem (Months 13–24)
+### Phase 4: Scale & Ecosystem (Months 19–30)
 **Goal: Sustainable platform with creator economy, full auditability, and healthy growth.**
 
 #### Deliverables:
@@ -980,7 +997,7 @@ Harbor/
 │   ├── api/        — Fastify 5 + TypeScript (port 4000)
 │   ├── web/        — Next.js 15 App Router + Tailwind (port 3000 in container)
 │   ├── mobile/     — Expo 52 + React Native 0.76 + NativeWind
-│   └── ml/         — FastAPI + Python (Phase 2; stub only in Phase 1)
+│   └── ml/         — FastAPI + Python (Phase 3; stub only in Phase 1-2)
 ├── infra/
 │   └── nginx/      — Nginx server configs (source of truth, deployed to VPS)
 ├── docker-compose.yml
@@ -1012,7 +1029,7 @@ Production will mirror this pattern: `joinharbor.app` + `api.joinharbor.app`.
 
 ---
 
-## 14. Messaging Architecture (Phase 3)
+## 14. Messaging Architecture (Phase 4)
 
 Harbor messaging implements Signal-level privacy as a constitutional requirement (Constitution §9). The server is a blind relay — it cannot read message contents.
 
@@ -1106,7 +1123,7 @@ All secrets are managed in **Doppler** (`harbor` project).
 | Environment | Doppler Config | Used For |
 |---|---|---|
 | Staging (VPS) | `stg` | dev.joinharbor.app |
-| Production | `prd` | joinharbor.app (Phase 2+) |
+| Production | `prd` | joinharbor.app (Phase 3+) |
 | Local dev | `dev` | individual developer machines |
 
 The VPS authenticates via a scoped service token. No `.env` files on any server.
