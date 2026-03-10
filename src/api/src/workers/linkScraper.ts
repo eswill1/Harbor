@@ -47,6 +47,51 @@ export function startLinkScraper(db: Pool, redisUrl: string) {
         return
       }
 
+      // ── YouTube short-circuit — skip heavy page fetch, use oEmbed ───────────
+      const youtubeId = extractYoutubeId(url)
+      if (youtubeId) {
+        let ytTitle: string | null = null
+        try {
+          const oembedUrl  = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
+          const controller = new AbortController()
+          const timeout    = setTimeout(() => controller.abort(), 5000)
+          const res        = await fetch(oembedUrl, { signal: controller.signal })
+          clearTimeout(timeout)
+          if (res.ok) {
+            const oembed = await res.json() as { title?: string }
+            ytTitle = oembed.title ?? null
+          }
+        } catch { /* use null title */ }
+
+        await db.query(
+          `INSERT INTO link_previews
+             (content_id, url, canonical_url, title, description, image_url,
+              site_name, preview_type, is_youtube, youtube_id, scraped_at, failed)
+           VALUES ($1, $2, $3, $4, NULL, $5, 'YouTube', 'video', true, $6, NOW(), false)
+           ON CONFLICT (content_id) DO UPDATE SET
+             canonical_url = EXCLUDED.canonical_url,
+             title         = EXCLUDED.title,
+             image_url     = EXCLUDED.image_url,
+             site_name     = 'YouTube',
+             preview_type  = 'video',
+             is_youtube    = true,
+             youtube_id    = EXCLUDED.youtube_id,
+             scraped_at    = NOW(),
+             failed        = false`,
+          [
+            contentId,
+            url,
+            url,
+            ytTitle ? ytTitle.slice(0, 500) : null,
+            `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`,
+            youtubeId,
+          ],
+        )
+        return
+      }
+
+      // ── Standard HTML fetch + OG parse ──────────────────────────────────────
+
       let html: string
       try {
         const controller = new AbortController()
@@ -93,13 +138,8 @@ export function startLinkScraper(db: Pool, redisUrl: string) {
       let domain: string | null = null
       try { domain = new URL(canonicalUrl).hostname.replace(/^www\./, '') } catch { /* ignore */ }
 
-      // ── YouTube special case ────────────────────────────────────────────────
-
-      const youtubeId   = extractYoutubeId(url)
-      const isYoutube   = youtubeId !== null
-      const finalImage  = isYoutube && !imageUrl
-        ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`
-        : imageUrl
+      const isYoutube  = false
+      const finalImage = imageUrl
 
       await db.query(
         `INSERT INTO link_previews
@@ -125,9 +165,9 @@ export function startLinkScraper(db: Pool, redisUrl: string) {
           description ? description.slice(0, 1000) : null,
           finalImage,
           siteName ?? domain,
-          isYoutube ? 'video' : 'article',
-          isYoutube,
-          youtubeId,
+          'article',
+          false,
+          null,
         ],
       )
     },
