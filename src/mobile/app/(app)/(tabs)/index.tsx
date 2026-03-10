@@ -21,12 +21,12 @@ import {
 } from 'phosphor-react-native'
 import { router } from 'expo-router'
 
-import { colors, fontSize, fontFamily, space, radius, shadow, duration } from '../../constants/tokens'
-import { Button } from '../../components/ui/Button'
-import { useSessionStore, loadLastIntent, type IntentId } from '../../store/session'
-import { useAuthStore } from '../../store/auth'
-import { deckApi } from '../../lib/api'
-import { useTheme } from '../../hooks/useTheme'
+import { colors, fontSize, fontFamily, space, radius, shadow, duration } from '../../../constants/tokens'
+import { Button } from '../../../components/ui/Button'
+import { useSessionStore, loadLastIntent, type IntentId } from '../../../store/session'
+import { useAuthStore } from '../../../store/auth'
+import { deckApi } from '../../../lib/api'
+import { useTheme } from '../../../hooks/useTheme'
 
 const SCREEN_WIDTH = Dimensions.get('window').width
 const CARD_GAP     = space[3]

@@ -368,34 +368,32 @@ function CompletionScreen({ onNewDeck, onChangeIntent, theme }: {
       <Text style={styles.completionSub}>That was your 20-card deck.</Text>
 
       <View style={styles.satisfactionRow}>
-        {isDone ? (
-          <Text style={styles.satisfactionThanks}>Thanks for the feedback.</Text>
-        ) : (
-          <Text style={styles.satisfactionQ}>Did you get what you came for?</Text>
-        )}
-        <View style={styles.satisfactionButtons}>
+        <Text style={styles.satisfactionQ}>
+          {isDone ? 'Thanks for the feedback.' : 'Did you get what you came for?'}
+        </Text>
+        <View style={styles.satisfactionEmojis}>
           {([
-            { label: "Yes, I'm done", value: 1 as const },
-            { label: 'Sort of',       value: 2 as const },
-            { label: 'Not really',    value: 3 as const },
-          ]).map(({ label, value }) => {
+            { emoji: '😊', value: 1 as const },
+            { emoji: '😐', value: 2 as const },
+            { emoji: '😞', value: 3 as const },
+          ]).map(({ emoji, value }) => {
             const isChosen = selected === value
             return (
               <Pressable
                 key={value}
                 style={[
-                  styles.satisfactionBtn,
-                  isChosen && styles.satisfactionBtnPrimary,
-                  isDone && !isChosen && styles.satisfactionBtnDimmed,
+                  styles.satisfactionEmoji,
+                  isChosen && styles.satisfactionEmojiChosen,
+                  isDone && !isChosen && styles.satisfactionEmojiDimmed,
                 ]}
                 onPress={() => handleSatisfaction(value)}
                 disabled={isDone}
               >
                 <Text style={[
-                  styles.satisfactionBtnText,
-                  isChosen && styles.satisfactionBtnTextPrimary,
+                  styles.satisfactionEmojiText,
+                  isChosen && styles.satisfactionEmojiTextChosen,
                 ]}>
-                  {label}
+                  {emoji}
                 </Text>
               </Pressable>
             )
@@ -807,7 +805,7 @@ const makeStyles = (c: typeof colors.light) => StyleSheet.create({
   },
   satisfactionRow: {
     alignItems: 'center',
-    gap:        space[3],
+    gap:        space[4],
     width:      '100%',
   },
   satisfactionQ: {
@@ -816,39 +814,32 @@ const makeStyles = (c: typeof colors.light) => StyleSheet.create({
     color:      c.textPrimary,
     textAlign:  'center',
   },
-  satisfactionThanks: {
-    fontSize:   fontSize.base,
-    fontFamily: fontFamily.interMedium,
-    color:      c.accentPrimary,
-    textAlign:  'center',
+  satisfactionEmojis: {
+    flexDirection:  'row',
+    justifyContent: 'center',
+    gap:            space[5],
   },
-  satisfactionButtons: {
-    gap:   space[2],
-    width: '100%',
+  satisfactionEmoji: {
+    width:          72,
+    height:         72,
+    borderRadius:   36,
+    alignItems:     'center',
+    justifyContent: 'center',
+    backgroundColor: c.bgElevated,
   },
-  satisfactionBtn: {
-    paddingVertical:   space[3],
-    paddingHorizontal: space[5],
-    borderRadius:      radius.md,
-    borderWidth:       1.5,
-    borderColor:       c.border,
-    alignItems:        'center',
-  },
-  satisfactionBtnPrimary: {
-    backgroundColor: c.accentPrimary,
+  satisfactionEmojiChosen: {
+    backgroundColor: c.accentPrimary + '22',
+    borderWidth:     2,
     borderColor:     c.accentPrimary,
   },
-  satisfactionBtnDimmed: {
-    opacity: 0.35,
+  satisfactionEmojiDimmed: {
+    opacity: 0.30,
   },
-  satisfactionBtnText: {
-    fontSize:   fontSize.base,
-    fontFamily: fontFamily.interMedium,
-    color:      c.textSecondary,
+  satisfactionEmojiText: {
+    fontSize: 36,
   },
-  satisfactionBtnTextPrimary: {
-    color:      '#fff',
-    fontFamily: fontFamily.interBold,
+  satisfactionEmojiTextChosen: {
+    fontSize: 40,
   },
   completionDivider: {
     width:           '100%',

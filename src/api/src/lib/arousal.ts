@@ -37,6 +37,8 @@ const OUTRAGE: Signal[] = [
   { pattern: /\bspeechless\b/i,         weight: 0.15 },
   { pattern: /\bunacceptable\b/i,       weight: 0.15 },
   { pattern: /\breprehensible\b/i,      weight: 0.15 },
+  { pattern: /\bhate\b/i,               weight: 0.12 },
+  { pattern: /\b(screw|damn|hell)\b/i,  weight: 0.08 },
 ]
 
 // Strong reaction phrases — compound patterns

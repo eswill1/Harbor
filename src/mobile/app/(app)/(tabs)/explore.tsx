@@ -11,10 +11,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { UsersThree } from 'phosphor-react-native'
 import { router, useFocusEffect } from 'expo-router'
-import { feedApi, FeedPost } from '../../lib/api'
-import { useAuthStore } from '../../store/auth'
-import { colors, fontSize, fontFamily, space, radius } from '../../constants/tokens'
-import { useTheme } from '../../hooks/useTheme'
+import { feedApi, FeedPost } from '../../../lib/api'
+import { useAuthStore } from '../../../store/auth'
+import { colors, fontSize, fontFamily, space, radius } from '../../../constants/tokens'
+import { useTheme } from '../../../hooks/useTheme'
 
 function timeAgo(iso: string): string {
   const diff  = Date.now() - new Date(iso).getTime()

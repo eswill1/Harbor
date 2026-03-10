@@ -14,10 +14,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft } from 'phosphor-react-native'
 import { router } from 'expo-router'
 
-import { postsApi } from '../../lib/api'
-import { useAuthStore } from '../../store/auth'
-import { colors, fontSize, fontFamily, space, radius } from '../../constants/tokens'
-import { useTheme } from '../../hooks/useTheme'
+import { postsApi } from '../../../lib/api'
+import { useAuthStore } from '../../../store/auth'
+import { colors, fontSize, fontFamily, space, radius } from '../../../constants/tokens'
+import { useTheme } from '../../../hooks/useTheme'
 
 const MAX_CHARS = 500
 

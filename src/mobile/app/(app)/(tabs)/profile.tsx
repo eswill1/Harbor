@@ -4,11 +4,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { User, SignOut, Bell, CaretRight, Moon } from 'phosphor-react-native'
 import { router } from 'expo-router'
 
-import { authApi, moderationApi } from '../../lib/api'
-import { useAuthStore } from '../../store/auth'
-import { useThemeStore, type ThemePreference } from '../../store/theme'
-import { colors, fontSize, fontFamily, space, radius } from '../../constants/tokens'
-import { useTheme } from '../../hooks/useTheme'
+import { authApi, moderationApi } from '../../../lib/api'
+import { useAuthStore } from '../../../store/auth'
+import { useThemeStore, type ThemePreference } from '../../../store/theme'
+import { colors, fontSize, fontFamily, space, radius } from '../../../constants/tokens'
+import { useTheme } from '../../../hooks/useTheme'
 
 const APPEARANCE_OPTIONS: { label: string; value: ThemePreference }[] = [
   { label: 'System', value: 'system' },

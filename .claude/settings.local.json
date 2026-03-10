@@ -9,7 +9,22 @@
       "Read(//Users/edwilliams/Applications/**)",
       "Bash(echo \"PATH: $PATH\")",
       "Bash(ssh -T git@github.com)",
-      "Read(//Users/edwilliams/.ssh/**)"
+      "Read(//Users/edwilliams/.ssh/**)",
+      "Bash(PATH=/opt/homebrew/opt/node@20/bin:$PATH npx tsc:*)",
+      "Bash(node:*)",
+      "Bash(node_modules/.bin/tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(ssh:*)",
+      "Bash(rsync:*)",
+      "Bash(curl:*)",
+      "Bash(git commit:*)",
+      "Bash(scp:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(do sed:*)"
     ]
   }
 }

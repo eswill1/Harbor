@@ -16,10 +16,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { BookmarksSimple, CaretRight, Plus } from 'phosphor-react-native'
 import { router, useFocusEffect } from 'expo-router'
 
-import { shelvesApi, Shelf } from '../../lib/api'
-import { useAuthStore } from '../../store/auth'
-import { colors, fontSize, fontFamily, space, radius } from '../../constants/tokens'
-import { useTheme } from '../../hooks/useTheme'
+import { shelvesApi, Shelf } from '../../../lib/api'
+import { useAuthStore } from '../../../store/auth'
+import { colors, fontSize, fontFamily, space, radius } from '../../../constants/tokens'
+import { useTheme } from '../../../hooks/useTheme'
 
 export default function ShelvesScreen() {
   const insets      = useSafeAreaInsets()
