@@ -254,11 +254,71 @@ export interface UserProfile {
   id:              string
   handle:          string
   display_name:    string
+  role?:           string
   follower_count:  number
   following_count: number
   post_count:      number
   is_following:    boolean
   unread_notifications?: number
+}
+
+// ─── Admin API ────────────────────────────────────────────────────────────────
+
+export interface AdminSummary {
+  generated_at: string
+  ssr: {
+    pct_24h:       number | null
+    pct_7d:        number | null
+    responded_24h: number
+    responded_7d:  number
+    threshold_pct: number
+  }
+  regret_rate: {
+    pct:             number | null
+    total_prompted:  number
+    total_responded: number
+    window_hours:    number
+    threshold_pct:   number
+  }
+  sessions: {
+    total_24h:     number
+    total_7d:      number
+    completed_24h: number
+    completed_7d:  number
+  }
+  content: {
+    posts_24h: number
+    posts_7d:  number
+  }
+  users: {
+    new_24h: number
+    new_7d:  number
+  }
+  moderation: {
+    pending_reports: number
+    pending_appeals: number
+  }
+  ranking_config: {
+    version: string
+  }
+}
+
+export interface RollbackEvent {
+  id:             string
+  triggered_at:   string
+  trigger_metric: string
+  metric_value:   number
+  from_version:   string
+  to_version:     string
+  note:           string | null
+}
+
+export const adminApi = {
+  summary: (token: string) =>
+    api.get<AdminSummary>('/api/admin/metrics/summary', token),
+
+  rollbackEvents: (token: string) =>
+    api.get<RollbackEvent[]>('/api/admin/metrics/rollback-events', token),
 }
 
 export const usersApi = {
