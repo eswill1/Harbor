@@ -443,18 +443,13 @@ export default function DeckPage() {
     onSuccess: (data) => setDeck(data.session_id, data.cards),
   })
 
-  if (!currentIntent || cards.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4 text-center">
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No deck loaded.</p>
-        <button onClick={() => router.push('/home')}
-                className="rounded-xl px-6 py-2.5 text-sm font-semibold"
-                style={{ background: 'var(--accent-primary)', color: '#fff' }}>
-          Choose an intent
-        </button>
-      </div>
-    )
-  }
+  useEffect(() => {
+    if (!currentIntent || cards.length === 0) {
+      router.replace('/home')
+    }
+  }, [currentIntent, cards.length, router])
+
+  if (!currentIntent || cards.length === 0) return null
 
   const isDone = cardIndex >= cards.length
   const card   = isDone ? null : cards[cardIndex]
