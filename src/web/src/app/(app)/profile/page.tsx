@@ -117,6 +117,7 @@ export default function ProfilePage() {
           { href: '/notifications', label: 'Notifications', icon: '🔔' },
           { href: '/notices',       label: 'Notices',       icon: '⚠' },
           { href: '/compose',       label: 'Write a post',  icon: '✏' },
+          ...(profile?.role === 'admin' ? [{ href: '/admin', label: 'Admin metrics', icon: '📊' }] : []),
         ] as const).map(({ href, label, icon }, i, arr) => (
           <Link key={href} href={href}
                 className="flex items-center gap-3 px-4 py-3.5 transition-colors"

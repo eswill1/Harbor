@@ -50,6 +50,7 @@ export default async function userRoutes(app: FastifyInstance) {
       id:             user.id,
       handle:         user.handle,
       display_name:   user.display_name,
+      role:                 request.user.role,
       follower_count:       Number(counts.follower_count),
       following_count:      Number(counts.following_count),
       post_count:           Number(counts.post_count),
