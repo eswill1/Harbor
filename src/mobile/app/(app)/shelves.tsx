@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 import {
   View,
   Text,
@@ -7,6 +7,10 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { BookmarksSimple, CaretRight, Plus } from 'phosphor-react-native'
@@ -23,8 +27,11 @@ export default function ShelvesScreen() {
   const theme       = useTheme()
   const styles      = useMemo(() => makeStyles(theme), [theme])
 
-  const [shelves, setShelves] = useState<Shelf[]>([])
-  const [loading, setLoading] = useState(true)
+  const [shelves, setShelves]       = useState<Shelf[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [modalVisible, setModal]    = useState(false)
+  const [shelfName, setShelfName]   = useState('')
+  const inputRef                    = useRef<TextInput>(null)
 
   const loadShelves = useCallback(async () => {
     if (!accessToken) return
@@ -56,12 +63,19 @@ export default function ShelvesScreen() {
   }
 
   const handleCreatePrompt = () => {
-    Alert.prompt(
-      'New Shelf',
-      'Enter a name for your shelf',
-      (name) => { if (name?.trim()) void handleCreate(name.trim()) },
-      'plain-text',
-    )
+    setShelfName('')
+    setModal(true)
+    setTimeout(() => inputRef.current?.focus(), 100)
+  }
+
+  const handleModalConfirm = () => {
+    const name = shelfName.trim()
+    setModal(false)
+    if (name) void handleCreate(name)
+  }
+
+  const handleModalCancel = () => {
+    setModal(false)
   }
 
   const handleDelete = (shelf: Shelf) => {
@@ -144,6 +158,49 @@ export default function ShelvesScreen() {
           }
         />
       )}
+
+      {/* ── New Shelf Modal ── */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={handleModalCancel}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>{"New Shelf"}</Text>
+            <TextInput
+              ref={inputRef}
+              style={styles.modalInput}
+              placeholder="Shelf name"
+              placeholderTextColor={theme.textMuted}
+              value={shelfName}
+              onChangeText={setShelfName}
+              onSubmitEditing={handleModalConfirm}
+              returnKeyType="done"
+              autoCapitalize="words"
+              maxLength={80}
+            />
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={({ pressed }) => [styles.modalBtn, styles.modalBtnCancel, pressed && { opacity: 0.7 }]}
+                onPress={handleModalCancel}
+              >
+                <Text style={styles.modalBtnCancelLabel}>{"Cancel"}</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.modalBtn, styles.modalBtnConfirm, pressed && { opacity: 0.7 }]}
+                onPress={handleModalConfirm}
+              >
+                <Text style={styles.modalBtnConfirmLabel}>{"Create"}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   )
 }
@@ -234,6 +291,66 @@ const makeStyles = (c: typeof colors.light) => StyleSheet.create({
     backgroundColor:   c.accentPrimary,
   },
   emptyBtnLabel: {
+    fontSize:   fontSize.base,
+    fontFamily: fontFamily.interBold,
+    color:      '#fff',
+  },
+
+  // New shelf modal
+  modalOverlay: {
+    flex:            1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems:      'center',
+    justifyContent:  'center',
+    paddingHorizontal: space[5],
+  },
+  modalBox: {
+    width:           '100%',
+    backgroundColor: c.bgElevated,
+    borderRadius:    radius.lg,
+    padding:         space[5],
+    gap:             space[4],
+  },
+  modalTitle: {
+    fontSize:   fontSize.lg,
+    fontFamily: fontFamily.loraBold,
+    color:      c.textPrimary,
+  },
+  modalInput: {
+    borderWidth:   1,
+    borderColor:   c.border,
+    borderRadius:  radius.md,
+    paddingVertical:   space[3],
+    paddingHorizontal: space[4],
+    fontSize:      fontSize.base,
+    fontFamily:    fontFamily.inter,
+    color:         c.textPrimary,
+    backgroundColor: c.bgBase,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap:           space[3],
+  },
+  modalBtn: {
+    flex:            1,
+    paddingVertical: space[3],
+    borderRadius:    radius.md,
+    alignItems:      'center',
+  },
+  modalBtnCancel: {
+    backgroundColor: c.bgBase,
+    borderWidth:     1,
+    borderColor:     c.border,
+  },
+  modalBtnCancelLabel: {
+    fontSize:   fontSize.base,
+    fontFamily: fontFamily.interMedium,
+    color:      c.textSecondary,
+  },
+  modalBtnConfirm: {
+    backgroundColor: c.accentPrimary,
+  },
+  modalBtnConfirmLabel: {
     fontSize:   fontSize.base,
     fontFamily: fontFamily.interBold,
     color:      '#fff',
