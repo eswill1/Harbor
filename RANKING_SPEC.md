@@ -1,5 +1,5 @@
 # Harbor Ranking Spec
-### Version 0.2 — Aligned with Constitution v0.2 (includes Perspective §11), Implementation Plan v1.2
+### Version 0.3 — Adds link post scoring rules (§3.6), Phase 2 link preview infrastructure notes
 
 ---
 
@@ -164,6 +164,22 @@ Derived from:
 - Rage-engagement patterns (ratio of hostile comments to constructive replies)
 
 Used only to enforce caps, avoid consecutive high-arousal items, and trigger dampening. Never used to maximize engagement.
+
+---
+
+### 3.6 Link Post Rules (Phase 2+)
+
+When a post contains a URL with a successfully scraped link preview (`link_previews.failed = false`):
+
+- The post is eligible in all intents (treated identically to text posts for ranking purposes)
+- The scraped `title` and `description` from the link preview are included in arousal scoring (body text + preview text concatenated before scoring)
+- **Perspective domain lookup** (Phase 3): if `canonical_url` resolves to a known outlet in the outlet registry, the card is eligible for the Perspective panel — the domain is checked at render time, not at scoring time
+- No ranking boost for posts with link previews vs. plain text — Harbor does not incentivise link sharing over original writing
+- Posts where the scrape failed or is pending render as plain text posts — no link card shown, no ranking penalty
+
+**YouTube posts** follow the same rules. The `is_youtube` flag is a rendering hint only — it carries no ranking weight.
+
+**Prohibited:** outlet reliability tier from Perspective data must never be used as a ranking signal, even after Phase 3 ships. See §10.2.
 
 ---
 

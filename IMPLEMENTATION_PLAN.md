@@ -47,7 +47,8 @@
 | Primary database | **PostgreSQL 16** | Relational, strong JSON support, pgvector for embeddings |
 | Vector store | **pgvector** (PostgreSQL extension) | Content and shelf embeddings for similarity ranking |
 | Cache | **Redis (Valkey)** | Deck pre-computation, session state, rate limiting |
-| Message queue | **BullMQ (Redis-backed)** | Async jobs: deck generation, arousal scoring, satisfaction processing |
+| Message queue | **BullMQ (Redis-backed)** | Async jobs: deck generation, arousal scoring, satisfaction processing, OG link scraping |
+| HTML parsing | **Cheerio** | Server-side OG/meta tag extraction for link preview scraper |
 | Object storage | **Cloudflare R2** | Media (images, video thumbnails), shelf exports |
 | CDN | **Cloudflare** | Global edge, image optimization, DDoS protection |
 | Search | **Typesense** | Self-hosted, fast, typo-tolerant full-text search for shelves + Explore |
@@ -154,6 +155,24 @@ CREATE TABLE content (
   arousal_score FLOAT,          -- 0.0-1.0, computed async
   created_at    TIMESTAMPTZ DEFAULT NOW(),
   metadata      JSONB DEFAULT '{}'
+);
+
+-- Link previews (scraped async at post creation — prerequisite for Perspective)
+CREATE TABLE link_previews (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  content_id    UUID REFERENCES content(id) ON DELETE CASCADE,
+  url           TEXT NOT NULL,          -- original URL detected in post body
+  canonical_url TEXT,                   -- og:url if present
+  title         TEXT,                   -- og:title → <title> fallback
+  description   TEXT,                   -- og:description → <meta description>
+  image_url     TEXT,                   -- og:image (raw URL — cached to R2 in Phase 3)
+  site_name     TEXT,                   -- og:site_name → domain fallback
+  preview_type  TEXT DEFAULT 'article', -- article | video | website
+  is_youtube    BOOLEAN DEFAULT false,
+  youtube_id    TEXT,                   -- extracted for thumbnail (no API key needed)
+  scraped_at    TIMESTAMPTZ,
+  failed        BOOLEAN DEFAULT false,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Sessions
@@ -623,7 +642,7 @@ The single narrow exception: a user's `framing_preference` from `perspective_use
 #### Deliverables:
 - [x] Auth system — email/password registration + login, JWT access + refresh tokens _(OAuth: Phase 2)_
 - [x] User profiles (simple)
-- [x] Content creation: text posts _(image posts, link sharing: Phase 2)_
+- [x] Content creation: text posts _(image posts: Phase 3)_
 - [x] Intent selector (all 7 modes including Explore; Civic gated by opt-in)
 - [x] Deck engine v1 — friends bucket (follows), discovery bucket, stub padding for sparse graphs
 - [x] Bucket plan v1 (rule-based, not ML — friends / discovery / shelves buckets live)
@@ -658,11 +677,19 @@ The single narrow exception: a user's `framing_preference` from `perspective_use
 **Goal: Make the platform measurably better for users already on it — data collection, notifications, creator tools, and metrics visibility. No ML required, stays on VPS.**
 
 #### Deliverables:
+- [x] Regret Rate prompt (small rotating cohort, 15% of sessions — feeds Phase 3 ML training)
+- [x] Automatic rollback triggers (BullMQ hourly job — RR > 10% over 24h window flips config version)
+- [ ] Rich link previews (OG scraping, link_previews table, LinkPreviewCard component — prerequisite for Perspective)
+  - URL detection at post creation → async BullMQ scrape job
+  - `link_previews` table: title, description, image_url, site_name, canonical_url, is_youtube, youtube_id
+  - YouTube special case: thumbnail from img.youtube.com, no API key
+  - SSRF protection on scraper (block internal IP ranges)
+  - Deck + feed API JOIN link_previews into card response
+  - LinkPreviewCard component (mobile + web): OG image, site name, title, description
+  - Composer live preview (800ms debounce, dismissable)
 - [ ] Notification system (batched, calm, `--accent-primary` badges — follow, reply, shelf save)
-- [ ] Regret Rate prompt (small rotating cohort, separate from satisfaction prompt — feeds Phase 3 ML training)
 - [ ] Mood Delta prompt (opt-in cohort)
 - [ ] Daily metrics dashboard (SSR, RR, AEI, dogpile rate, moderation queue — admin-facing)
-- [ ] Automatic rollback triggers (wired to ranking config versioning from Phase 1)
 - [ ] Signal editing UI (full "Why this?" panel with editable signals)
 - [ ] Creator analytics dashboard (save rate, helpful rate, satisfaction contribution — not follower counts)
 - [ ] Relationship strength scoring (improves friends bucket quality)
@@ -786,6 +813,8 @@ GET    /api/civic/preferences
 PATCH  /api/civic/preferences
 GET    /api/civic/lens                        — user's Perspective lens preference (Civic only)
 PATCH  /api/civic/lens                        — update lens preference
+
+GET    /api/link-preview?url=                — fetch OG preview for composer live preview (auth required, SSRF-protected)
 
 GET    /api/perspective/:contentId            — Perspective panel data for a news link card
        — returns: outlet name, reliability_tier, rater_data, coverage dot list

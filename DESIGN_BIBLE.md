@@ -1,5 +1,5 @@
 # Harbor Design Bible
-### Version 1.3 — Adds Broadcast Pause pattern (§3.13) + in-feed salience anti-patterns (§7, §10)
+### Version 1.4 — Adds Link Preview Card (§3.14), updates §5.1 content types, adds link composer behaviour
 
 ---
 
@@ -620,6 +620,59 @@ Users who have opted into Civic Lane may set a framing lens: All / Left-leaning 
 
 ---
 
+### 3.14 Link Preview Card
+
+A link card renders below the post body whenever a post contains a URL that was successfully scraped. It is a passive informational element — it does not replace the post text.
+
+#### Standard link card
+
+```
+┌─────────────────────────────────┐
+│ [OG image — 16:9, if present]   │
+├─────────────────────────────────┤
+│ SITE NAME                       │  ← og:site_name or domain, uppercased, muted
+│ Title of the linked article     │  ← og:title, bold, 2-line max
+│ Description truncated to two    │  ← og:description, muted, 2-line max
+│ lines of text here...           │
+└─────────────────────────────────┘
+```
+
+- Entire card is tappable → opens URL in system browser (mobile) or new tab (web)
+- OG image is optional — card renders without it if unavailable
+- No estimated read time in Phase 2 (deferred to Phase 3 with full article parsing)
+
+#### YouTube card
+
+```
+┌─────────────────────────────────┐
+│ [YouTube thumbnail — 16:9]      │
+│              [▶ Play]           │  ← centered play icon overlay
+├─────────────────────────────────┤
+│ YouTube                         │
+│ Video title here                │
+└─────────────────────────────────┘
+```
+
+- Thumbnail sourced from `img.youtube.com` — no API key required
+- Tap → opens YouTube app (if installed) or browser
+- No in-app video playback in Phase 2 (no autoplay, ever — see §7)
+
+#### Composer behaviour
+
+When a user types or pastes a URL into the post composer:
+- After 800ms debounce, fetch a live preview of the link card
+- Show the preview below the text input with a dismiss (×) button
+- If dismissed, URL stays in the post body but no link card is attached
+- Only the first URL in a post generates a link card — subsequent URLs are plain text
+- If scrape fails silently (timeout, no OG tags, SSRF block), no card is shown — the post remains a plain text post
+
+#### What link cards never do
+
+- Never auto-play video or audio
+- Never show engagement metrics for the linked article (views, shares)
+- Never show a Perspective panel in Phase 2 (Perspective requires outlet registry — Phase 3)
+- Never obscure the post author's own words — the link card is always secondary to the text
+
 ### 3.13 Broadcast Pause Module
 
 The Broadcast Pause module replaces the legacy share panel for flagged content. It is **the only sanctioned mechanism for surfacing sharing friction** — friction must not appear on the card itself.
@@ -756,9 +809,10 @@ App Entry
 |---|---|---|
 | Short post (≤280 chars) | Catch Up, Connect | Compact card |
 | Long post / thread | Learn, Connect | Expandable card with read progress |
-| Article link | Learn, Catch Up | Link card with excerpt + estimated read time |
-| Image post | Delight, Connect | Media card (no autoplay) |
-| Video | Delight, Learn | Static thumbnail, tap to play, no autoloop |
+| Article link | Learn, Catch Up | Link preview card (§3.14) — OG title + description + image; Perspective panel when outlet registry is live (Phase 3) |
+| YouTube link | Delight, Learn | YouTube card (§3.14) — thumbnail + play icon overlay, tap to open |
+| Image post | Delight, Connect | Media card (no autoplay) — Phase 3 |
+| Video | Delight, Learn | Static thumbnail, tap to play, no autoloop — Phase 3 |
 | Community thread | Connect | Thread card with reply count |
 | Event | Connect | Event card with RSVP |
 | Creator newsletter | Learn | Article card with subscribe CTA |
