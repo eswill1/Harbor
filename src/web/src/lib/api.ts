@@ -122,6 +122,17 @@ export const authApi = {
 
 // ─── Deck API ─────────────────────────────────────────────────────────────────
 
+export interface LinkPreview {
+  url:           string
+  canonical_url: string | null
+  title:         string | null
+  description:   string | null
+  image_url:     string | null
+  site_name:     string | null
+  is_youtube:    boolean
+  youtube_id:    string | null
+}
+
 export interface DeckCard {
   id:             string
   position:       number
@@ -130,6 +141,7 @@ export interface DeckCard {
   source_bucket:  'friends' | 'groups' | 'shelves' | 'discovery'
   is_serendipity: boolean
   arousal_band:   'low' | 'medium' | 'high'
+  link_preview:   LinkPreview | null
 }
 
 export interface DeckResponse {
@@ -171,6 +183,9 @@ export const postsApi = {
 
   feed: (token: string) =>
     api.get<Post[]>('/api/posts/feed', token),
+
+  getLinkPreview: (url: string, token: string) =>
+    api.get<LinkPreview & { ok: true } | { ok: false }>(`/api/link-preview?url=${encodeURIComponent(url)}`, token),
 }
 
 // ─── Feed API ─────────────────────────────────────────────────────────────────

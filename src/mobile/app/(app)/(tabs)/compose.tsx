@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import {
   View,
   Text,
@@ -14,10 +14,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft } from 'phosphor-react-native'
 import { router } from 'expo-router'
 
-import { postsApi } from '../../../lib/api'
+import { postsApi, type LinkPreview } from '../../../lib/api'
 import { useAuthStore } from '../../../store/auth'
 import { colors, fontSize, fontFamily, space, radius } from '../../../constants/tokens'
 import { useTheme } from '../../../hooks/useTheme'
+import LinkPreviewCard from '../../../components/LinkPreviewCard'
+
+const URL_RE = /https?:\/\/[^\s<>"{}|\\^`[\]]+/i
 
 const MAX_CHARS = 500
 
@@ -33,6 +36,30 @@ export default function ComposeScreen() {
   const isOverLimit = charCount > MAX_CHARS
   const isEmpty     = content.trim().length === 0
   const canPost     = !isEmpty && !isOverLimit && !loading
+
+  const [linkPreview, setLinkPreview]       = useState<LinkPreview | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    const match = content.match(URL_RE)
+    if (!match) { setLinkPreview(null); return }
+    const url = match[0].replace(/[.,;!?)]+$/, '')
+    debounceRef.current = setTimeout(async () => {
+      if (!accessToken) return
+      setPreviewLoading(true)
+      try {
+        const result = await postsApi.getLinkPreview(url, accessToken)
+        setLinkPreview(result.ok ? result : null)
+      } catch {
+        setLinkPreview(null)
+      } finally {
+        setPreviewLoading(false)
+      }
+    }, 800)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [content])
 
   const handlePost = async () => {
     if (!canPost || !accessToken) return
@@ -94,6 +121,17 @@ export default function ComposeScreen() {
             textAlignVertical="top"
           />
         </View>
+
+        {/* ── Link preview ── */}
+        {(linkPreview || previewLoading) && (
+          <View style={styles.previewWrapper}>
+            {previewLoading ? (
+              <ActivityIndicator size="small" color={theme.textMuted} />
+            ) : linkPreview ? (
+              <LinkPreviewCard preview={linkPreview} theme={theme} />
+            ) : null}
+          </View>
+        )}
 
         {/* ── Character counter ── */}
         <View style={[styles.counterRow, { paddingBottom: insets.bottom + space[3] }]}>
@@ -173,6 +211,12 @@ const makeStyles = (c: typeof colors.light) => StyleSheet.create({
     color:      c.textPrimary,
     lineHeight: 28,
     minHeight:  120,
+  },
+
+  // Link preview
+  previewWrapper: {
+    paddingHorizontal: space[5],
+    paddingBottom:     space[3],
   },
 
   // Counter

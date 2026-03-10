@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
-import { deckApi, shelvesApi, shareApi, type DeckCard } from '../../../lib/api'
+import { deckApi, shelvesApi, shareApi, type DeckCard, type LinkPreview } from '../../../lib/api'
 import { useAuthStore } from '../../../store/auth'
 import { useSessionStore } from '../../../store/session'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -27,6 +27,73 @@ const INTENT_LABELS: Record<string, string> = {
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+// ─── Link preview card ────────────────────────────────────────────────────────
+
+function WebLinkPreviewCard({ preview }: { preview: LinkPreview }) {
+  const displayDomain = (() => {
+    try { return new URL(preview.canonical_url ?? preview.url).hostname.replace(/^www\./, '') }
+    catch { return preview.site_name ?? '' }
+  })()
+
+  const dest = preview.canonical_url ?? preview.url
+
+  if (preview.is_youtube && preview.youtube_id) {
+    const thumb = preview.image_url ?? `https://img.youtube.com/vi/${preview.youtube_id}/hqdefault.jpg`
+    return (
+      <a href={dest} target="_blank" rel="noopener noreferrer" className="block no-underline mt-3"
+         style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
+        <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#000' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <div style={{
+            position: 'absolute', bottom: 10, right: 10,
+            background: 'rgba(255,0,0,0.85)', borderRadius: 20,
+            width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 256 256" fill="#fff"><polygon points="240,128 80,32 80,224"/></svg>
+          </div>
+        </div>
+        <div style={{ padding: '10px 14px 12px' }}>
+          <span style={{
+            display: 'inline-block', background: '#FF0000', color: '#fff',
+            fontSize: 10, fontWeight: 700, borderRadius: 3, padding: '2px 6px',
+            letterSpacing: 0.3, marginBottom: 4,
+          }}>YouTube</span>
+          {preview.title && (
+            <p className="text-sm font-semibold leading-snug line-clamp-2"
+               style={{ color: 'var(--text-primary)', marginTop: 2 }}>{preview.title}</p>
+          )}
+        </div>
+      </a>
+    )
+  }
+
+  return (
+    <a href={dest} target="_blank" rel="noopener noreferrer" className="block no-underline mt-3"
+       style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
+      {preview.image_url && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={preview.image_url} alt="" style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />
+      )}
+      <div style={{ padding: '10px 14px 12px' }}>
+        {displayDomain && (
+          <p style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
+            {displayDomain}
+          </p>
+        )}
+        {preview.title && (
+          <p className="text-sm font-semibold leading-snug line-clamp-2"
+             style={{ color: 'var(--text-primary)' }}>{preview.title}</p>
+        )}
+        {preview.description && (
+          <p className="text-xs leading-relaxed line-clamp-2 mt-1"
+             style={{ color: 'var(--text-secondary)' }}>{preview.description}</p>
+        )}
+      </div>
+    </a>
+  )
 }
 
 // ─── Why This panel ───────────────────────────────────────────────────────────
@@ -595,6 +662,9 @@ export default function DeckPage() {
             <p className="text-base leading-relaxed" style={{ color: 'var(--text-primary)' }}>
               {card.content}
             </p>
+            {card.link_preview && (
+              <WebLinkPreviewCard preview={card.link_preview} />
+            )}
           </div>
 
           {/* Divider */}

@@ -7,6 +7,18 @@ type IntentId    = 'catch_up' | 'learn' | 'connect' | 'create' | 'delight' | 'ex
 type SourceBucket = 'friends' | 'groups' | 'shelves' | 'discovery'
 type ArousalBand  = 'low' | 'medium' | 'high'
 
+interface LinkPreviewRow {
+  content_id:    string
+  url:           string
+  canonical_url: string | null
+  title:         string | null
+  description:   string | null
+  image_url:     string | null
+  site_name:     string | null
+  is_youtube:    boolean
+  youtube_id:    string | null
+}
+
 interface StubCard {
   id:             string
   position:       number
@@ -15,6 +27,7 @@ interface StubCard {
   source_bucket:  SourceBucket
   is_serendipity: boolean
   arousal_band:   ArousalBand
+  link_preview:   Omit<LinkPreviewRow, 'content_id'> | null
 }
 
 interface RealPostRow {
@@ -245,6 +258,7 @@ function buildStubDeck(intent: IntentId): StubCard[] {
     source_bucket:  bucketPool[i % bucketPool.length],
     is_serendipity: bucketPool[i % bucketPool.length] === 'discovery',
     arousal_band:   (i === 4 ? 'high' : 'low') as ArousalBand,
+    link_preview:   null,
   }))
 }
 
@@ -372,6 +386,7 @@ export default async function deckRoutes(app: FastifyInstance) {
         source_bucket:  "friends" as SourceBucket,
         arousal_band:   arousalBand(post.arousal_score, config),
         is_serendipity: false,
+        link_preview:   null,
       }))
 
       const discoveryCards: StubCard[] = discoveryRows.map((post) => ({
@@ -386,6 +401,7 @@ export default async function deckRoutes(app: FastifyInstance) {
         source_bucket:  "discovery" as SourceBucket,
         arousal_band:   arousalBand(post.arousal_score, config),
         is_serendipity: true,
+        link_preview:   null,
       }))
 
       // Interleave: for every 2 discovery cards, insert 1 friends card
@@ -442,6 +458,7 @@ export default async function deckRoutes(app: FastifyInstance) {
               source_bucket:  "shelves",
               arousal_band:   arousalBand(shelfRow.arousal_score, config),
               is_serendipity: false,
+              link_preview:   null,
             }
           }
         }
@@ -455,7 +472,35 @@ export default async function deckRoutes(app: FastifyInstance) {
 
     cards = enforceArousalConstraints(cards, config)
 
-    return reply.send({ session_id, intent, cards })
+    // Attach link previews for any real content cards (stubs won't match)
+    const cardIds = cards.map(c => c.id)
+    const { rows: lpRows } = await app.db.query<LinkPreviewRow>(
+      `SELECT content_id, url, canonical_url, title, description, image_url,
+              site_name, is_youtube, youtube_id
+       FROM link_previews
+       WHERE content_id = ANY($1) AND failed = false`,
+      [cardIds],
+    )
+    const lpMap = new Map(lpRows.map(r => [r.content_id, r]))
+
+    const finalCards = cards.map(card => {
+      const lp = lpMap.get(card.id)
+      return {
+        ...card,
+        link_preview: lp ? {
+          url:           lp.url,
+          canonical_url: lp.canonical_url,
+          title:         lp.title,
+          description:   lp.description,
+          image_url:     lp.image_url,
+          site_name:     lp.site_name,
+          is_youtube:    lp.is_youtube,
+          youtube_id:    lp.youtube_id,
+        } : null,
+      }
+    })
+
+    return reply.send({ session_id, intent, cards: finalCards })
   })
 
   // POST /api/sessions/:id/complete — record satisfaction and close session

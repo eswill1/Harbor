@@ -9,6 +9,7 @@ import rateLimit from '@fastify/rate-limit'
 
 import { config } from './config'
 import { startMetricsMonitor } from './workers/metricsMonitor'
+import { startLinkScraper } from './workers/linkScraper'
 import dbPlugin from './plugins/db'
 import jwtPlugin from './plugins/jwt'
 import cookiePlugin from './plugins/cookie'
@@ -56,6 +57,8 @@ const start = async () => {
     await app.listen({ port: config.PORT, host: '0.0.0.0' })
     startMetricsMonitor(app.db, config.REDIS_URL)
     app.log.info('Metrics monitor started')
+    startLinkScraper(app.db, config.REDIS_URL)
+    app.log.info('Link scraper worker started')
   } catch (err) {
     app.log.error(err)
     process.exit(1)

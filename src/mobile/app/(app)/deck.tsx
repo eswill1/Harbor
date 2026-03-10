@@ -31,6 +31,7 @@ import { useSessionStore } from '../../store/session'
 import { useAuthStore } from '../../store/auth'
 import { deckApi, shelvesApi, shareApi } from '../../lib/api'
 import { useTheme } from '../../hooks/useTheme'
+import LinkPreviewCard from '../../components/LinkPreviewCard'
 
 // ─── Source bucket labels ─────────────────────────────────────────────────────
 
@@ -614,6 +615,11 @@ export default function DeckScreen() {
 
         {/* Content */}
         <Text style={styles.content}>{card.content}</Text>
+
+        {/* Link preview */}
+        {card.link_preview && (
+          <LinkPreviewCard preview={card.link_preview} theme={theme} />
+        )}
 
         {/* Actions */}
         <View style={styles.actions}>
