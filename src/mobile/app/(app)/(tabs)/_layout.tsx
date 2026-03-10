@@ -1,3 +1,4 @@
+import { View } from 'react-native'
 import { Tabs } from 'expo-router'
 import {
   Anchor,
@@ -7,9 +8,11 @@ import {
   User,
 } from 'phosphor-react-native'
 import { useTheme } from '../../../hooks/useTheme'
+import { useNotificationStore } from '../../../store/notifications'
 
 export default function TabsLayout() {
-  const theme = useTheme()
+  const theme       = useTheme()
+  const unreadCount = useNotificationStore((s) => s.unreadCount)
 
   return (
     <Tabs
@@ -69,7 +72,20 @@ export default function TabsLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size }) => (
-            <User size={size} color={color} weight="regular" />
+            <View>
+              <User size={size} color={color} weight="regular" />
+              {unreadCount > 0 && (
+                <View style={{
+                  position:        'absolute',
+                  top:             -2,
+                  right:           -2,
+                  width:           8,
+                  height:          8,
+                  borderRadius:    4,
+                  backgroundColor: theme.accentPrimary,
+                }} />
+              )}
+            </View>
           ),
         }}
       />

@@ -287,6 +287,27 @@ export interface UserProfile {
   following_count: number
   post_count:      number
   is_following:    boolean
+  unread_notifications?: number
+}
+
+// ─── Notifications API ────────────────────────────────────────────────────────
+
+export interface AppNotification {
+  id:           string
+  type:         'follow' | 'shelf_save'
+  actor:        { id: string; handle: string; display_name: string }
+  content_id:   string | null
+  content_body: string | null
+  read_at:      string | null
+  created_at:   string
+}
+
+export const notificationsApi = {
+  list: (token: string) =>
+    api.get<AppNotification[]>('/api/notifications', token),
+
+  markRead: (token: string) =>
+    api.post<{ ok: boolean }>('/api/notifications/read', {}, token),
 }
 
 export const usersApi = {

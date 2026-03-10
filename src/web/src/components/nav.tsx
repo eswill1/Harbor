@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '../store/auth'
 import { authApi } from '../lib/api'
+import { useNotificationStore } from '../store/notifications'
 
 const NAV_ITEMS = [
   { href: '/home',    label: 'Home',    icon: IconHome },
@@ -85,9 +86,10 @@ function IconProfile({ active }: { active: boolean }) {
 // ─── Nav component ─────────────────────────────────────────────────────────────
 
 export function SideNav() {
-  const pathname   = usePathname()
-  const router     = useRouter()
+  const pathname     = usePathname()
+  const router       = useRouter()
   const { clearAuth, accessToken, refreshToken } = useAuthStore()
+  const unreadCount  = useNotificationStore((s) => s.unreadCount)
 
   async function handleLogout() {
     if (accessToken && refreshToken) {
@@ -107,7 +109,8 @@ export function SideNav() {
         </div>
 
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(href + '/')
+          const active       = pathname === href || pathname.startsWith(href + '/')
+          const showDot      = label === 'Profile' && unreadCount > 0
           return (
             <Link key={href} href={href}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
@@ -115,7 +118,13 @@ export function SideNav() {
                     background: active ? 'var(--bg-elevated)' : 'transparent',
                     color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
                   }}>
-              <Icon active={active} />
+              <div className="relative">
+                <Icon active={active} />
+                {showDot && (
+                  <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+                       style={{ background: 'var(--accent-primary)' }} />
+                )}
+              </div>
               <span className="text-sm font-medium">{label}</span>
             </Link>
           )
@@ -142,12 +151,19 @@ export function SideNav() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 flex z-20"
            style={{ background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(href + '/')
+          const active  = pathname === href || pathname.startsWith(href + '/')
+          const showDot = label === 'Profile' && unreadCount > 0
           return (
             <Link key={href} href={href}
                   className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 transition-colors"
                   style={{ color: active ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
-              <Icon active={active} />
+              <div className="relative">
+                <Icon active={active} />
+                {showDot && (
+                  <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+                       style={{ background: 'var(--accent-primary)' }} />
+                )}
+              </div>
               <span className="text-xs font-medium">{label}</span>
             </Link>
           )
