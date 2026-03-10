@@ -20,8 +20,10 @@ const JOB_NAME   = 'check-metrics'
 
 export function startMetricsMonitor(db: Pool, redisUrl: string) {
   const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conn = connection as any
 
-  const queue = new Queue(QUEUE_NAME, { connection })
+  const queue = new Queue(QUEUE_NAME, { connection: conn })
 
   // Schedule recurring job — runs every hour
   queue.add(
@@ -120,7 +122,7 @@ export function startMetricsMonitor(db: Pool, redisUrl: string) {
         throw err
       }
     },
-    { connection },
+    { connection: conn },
   )
 
   worker.on('failed', (job, err) => {

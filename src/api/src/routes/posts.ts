@@ -32,7 +32,8 @@ export default async function postRoutes(app: FastifyInstance) {
   const redisConn = new IORedis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
     maxRetriesPerRequest: null,
   })
-  const scraperQueue = new Queue(LINK_SCRAPER_QUEUE, { connection: redisConn })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scraperQueue = new Queue(LINK_SCRAPER_QUEUE, { connection: redisConn as any })
 
   // ── POST /api/posts — create a text post ───────────────────────────────────
 

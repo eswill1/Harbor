@@ -26,8 +26,10 @@ interface ScrapeJobData {
 
 export function startLinkScraper(db: Pool, redisUrl: string) {
   const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conn = connection as any
   const queue      = new Queue(LINK_SCRAPER_QUEUE, {
-    connection,
+    connection: conn,
     defaultJobOptions: {
       attempts: 2,
       backoff:  { type: 'fixed', delay: 3000 },
@@ -129,7 +131,7 @@ export function startLinkScraper(db: Pool, redisUrl: string) {
         ],
       )
     },
-    { connection },
+    { connection: conn },
   )
 
   worker.on('failed', async (job, err) => {
