@@ -634,10 +634,10 @@ The single narrow exception: a user's `framing_preference` from `perspective_use
 - [x] Follow system + user profiles _(community join: Phase 2)_
 - [x] "Why this?" panel (rule-based explanations — Modal bottom sheet, source bucket label + serendipity disclosure)
 - [x] Share with friction (Broadcast Pause module: friend-first defaults, Add a note, Broadcast anyway — no countdown timer per Design Bible §3.13)
-- [ ] Basic arousal detection (keyword-based heuristics for P1, mapped to 3-band system)
+- [x] Basic arousal detection (keyword-based heuristics for P1, mapped to 3-band system)
 - [x] Moderation action + notice system (enforcement notices + appeal path, admin role, community guidelines, enforcement taxonomy) — constitutional requirement ✓
-- [ ] Ranking RFC tracking (internal tooling — even if no public-facing RFC yet)
-- [ ] Versioned ranking configs (for rollback)
+- [x] Ranking RFC tracking (internal tooling — RFC-0001 seeded, admin endpoints live)
+- [x] Versioned ranking configs (for rollback — ranking_config_versions table, is_active flag, deck engine reads from DB)
 - [x] Dark mode (system + in-app System/Light/Dark toggle, persisted)
 - [ ] React Native app (iOS + Android) _(iOS: complete; Android: pending)_
 - [x] Next.js web app _(auth, intent selector, deck, baseline feed, shelves, compose, profile, user profiles, notices + appeals)_
