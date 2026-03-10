@@ -56,8 +56,12 @@ export const useSessionStore = create<SessionState>()(
     {
       name: 'harbor_session',
       partialize: (s) => ({
-        lastIntent:   s.lastIntent,
-        civicOptedIn: s.civicOptedIn,
+        lastIntent:    s.lastIntent,
+        civicOptedIn:  s.civicOptedIn,
+        currentIntent: s.currentIntent,
+        sessionId:     s.sessionId,
+        cards:         s.cards,
+        cardIndex:     s.cardIndex,
       }),
     },
   ),

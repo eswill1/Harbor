@@ -351,15 +351,38 @@ function DeckComplete({
 }) {
   const router = useRouter()
   const { accessToken } = useAuthStore()
-  const [submitted, setSubmitted] = useState(false)
+  const [satisfaction, setSatisfaction]     = useState<1 | 2 | 3 | null>(null)
+  const [regretPrompted, setRegretPrompted] = useState(false)
+  const [regret, setRegret]                 = useState<1 | 2 | 3 | null>(null)
 
   const { mutate: complete } = useMutation({
-    mutationFn: (satisfaction: 1 | 2 | 3) => {
+    mutationFn: (value: 1 | 2 | 3) => {
       if (!accessToken || !sessionId) throw new Error()
-      return deckApi.complete(sessionId, satisfaction, accessToken)
+      return deckApi.complete(sessionId, value, accessToken)
     },
-    onSuccess: () => setSubmitted(true),
+    onSuccess: (data) => {
+      if (data.regret_prompted) setRegretPrompted(true)
+    },
   })
+
+  const { mutate: submitRegret } = useMutation({
+    mutationFn: (value: 1 | 2 | 3) => {
+      if (!accessToken || !sessionId) throw new Error()
+      return deckApi.submitRegret(sessionId, value, accessToken)
+    },
+  })
+
+  const handleSatisfaction = (value: 1 | 2 | 3) => {
+    if (satisfaction !== null) return
+    setSatisfaction(value)
+    complete(value)
+  }
+
+  const handleRegret = (value: 1 | 2 | 3) => {
+    if (regret !== null) return
+    setRegret(value)
+    submitRegret(value)
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 gap-6">
@@ -370,38 +393,75 @@ function DeckComplete({
 
       <div>
         <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-          You're caught up.
+          {"You're caught up."}
         </h2>
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
           That was your 20-card deck.
         </p>
       </div>
 
-      {!submitted ? (
-        <div className="w-full max-w-sm">
-          <p className="text-sm mb-3 font-medium" style={{ color: 'var(--text-primary)' }}>
-            Did you get what you came for?
+      {/* ── Satisfaction ── */}
+      <div className="w-full max-w-sm flex flex-col items-center gap-3">
+        <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+          {satisfaction !== null ? 'Thanks for the feedback.' : 'Did you get what you came for?'}
+        </p>
+        <div className="flex gap-4">
+          {([
+            { emoji: '😊', value: 1 as const },
+            { emoji: '😐', value: 2 as const },
+            { emoji: '😞', value: 3 as const },
+          ]).map(({ emoji, value }) => {
+            const isChosen = satisfaction === value
+            return (
+              <button key={value} onClick={() => handleSatisfaction(value)}
+                      disabled={satisfaction !== null}
+                      style={{
+                        width: 64, height: 64, borderRadius: 32,
+                        fontSize: isChosen ? 36 : 32,
+                        background: isChosen ? 'var(--accent-primary)22' : 'var(--bg-elevated)',
+                        border: isChosen ? '2px solid var(--accent-primary)' : '1px solid var(--border)',
+                        opacity: satisfaction !== null && !isChosen ? 0.3 : 1,
+                        cursor: satisfaction !== null ? 'default' : 'pointer',
+                        transition: 'all 0.15s',
+                      }}>
+                {emoji}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── Regret prompt (cohort only) ── */}
+      {satisfaction !== null && regretPrompted && (
+        <div className="w-full max-w-sm flex flex-col items-center gap-3">
+          <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+            {regret !== null ? 'Noted — thank you.' : 'Did you regret reading anything?'}
           </p>
-          <div className="flex flex-col gap-2">
-            <button onClick={() => complete(1)}
-                    className="w-full py-3 rounded-xl font-semibold text-sm"
-                    style={{ background: 'var(--accent-primary)', color: '#fff' }}>
-              Yes, I'm done
-            </button>
-            <button onClick={() => complete(2)}
-                    className="w-full py-3 rounded-xl text-sm"
-                    style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>
-              Sort of
-            </button>
-            <button onClick={() => complete(3)}
-                    className="w-full py-3 rounded-xl text-sm"
-                    style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>
-              Not really
-            </button>
+          <div className="flex gap-4">
+            {([
+              { emoji: '👍', value: 1 as const },
+              { emoji: '🤔', value: 2 as const },
+              { emoji: '😬', value: 3 as const },
+            ]).map(({ emoji, value }) => {
+              const isChosen = regret === value
+              return (
+                <button key={value} onClick={() => handleRegret(value)}
+                        disabled={regret !== null}
+                        style={{
+                          width: 64, height: 64, borderRadius: 32,
+                          fontSize: isChosen ? 36 : 32,
+                          background: isChosen ? 'var(--accent-primary)22' : 'var(--bg-elevated)',
+                          border: isChosen ? '2px solid var(--accent-primary)' : '1px solid var(--border)',
+                          opacity: regret !== null && !isChosen ? 0.3 : 1,
+                          cursor: regret !== null ? 'default' : 'pointer',
+                          transition: 'all 0.15s',
+                        }}>
+                  {emoji}
+                </button>
+              )
+            })}
           </div>
         </div>
-      ) : (
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Thanks for the feedback.</p>
       )}
 
       <div className="w-full max-w-sm flex flex-col gap-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
@@ -443,13 +503,18 @@ export default function DeckPage() {
     onSuccess: (data) => setDeck(data.session_id, data.cards),
   })
 
-  useEffect(() => {
-    if (!currentIntent || cards.length === 0) {
-      router.replace('/home')
-    }
-  }, [currentIntent, cards.length, router])
-
-  if (!currentIntent || cards.length === 0) return null
+  if (!currentIntent || cards.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4 text-center">
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No deck loaded.</p>
+        <button onClick={() => router.push('/home')}
+                className="rounded-xl px-6 py-2.5 text-sm font-semibold"
+                style={{ background: 'var(--accent-primary)', color: '#fff' }}>
+          Choose an intent
+        </button>
+      </div>
+    )
+  }
 
   const isDone = cardIndex >= cards.length
   const card   = isDone ? null : cards[cardIndex]
