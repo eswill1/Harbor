@@ -48,3 +48,4 @@ venv/
 # Testing
 coverage/
 .nyc_output/
+.claude/worktrees/
