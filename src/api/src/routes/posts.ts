@@ -173,6 +173,43 @@ export default async function postRoutes(app: FastifyInstance) {
     if (!url || typeof url !== 'string') return reply.badRequest('url is required')
     if (!isSafeUrl(url)) return reply.forbidden('URL is not allowed')
 
+    // ── YouTube short-circuit — skip heavy page fetch, use oEmbed ─────────────
+    const youtubeId = extractYoutubeId(url)
+    if (youtubeId) {
+      try {
+        const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
+        const controller = new AbortController()
+        const timeout    = setTimeout(() => controller.abort(), 5000)
+        const res        = await fetch(oembedUrl, { signal: controller.signal })
+        clearTimeout(timeout)
+        const oembed     = res.ok ? await res.json() as { title?: string; author_name?: string } : {}
+        return reply.send({
+          ok:           true,
+          url,
+          title:        oembed.title ?? null,
+          description:  null,
+          image_url:    `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`,
+          site_name:    'YouTube',
+          canonical_url: url,
+          is_youtube:   true,
+          youtube_id:   youtubeId,
+        })
+      } catch {
+        // oEmbed failed — still return a minimal preview from the ID alone
+        return reply.send({
+          ok:           true,
+          url,
+          title:        null,
+          description:  null,
+          image_url:    `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`,
+          site_name:    'YouTube',
+          canonical_url: url,
+          is_youtube:   true,
+          youtube_id:   youtubeId,
+        })
+      }
+    }
+
     try {
       const controller = new AbortController()
       const timeout    = setTimeout(() => controller.abort(), 5000)
@@ -189,32 +226,24 @@ export default async function postRoutes(app: FastifyInstance) {
       const buffer = await response.arrayBuffer()
       if (buffer.byteLength > 1_048_576) return reply.send({ ok: false })
 
-      const html        = new TextDecoder().decode(buffer)
-      const $           = cheerio.load(html)
-      const og          = (prop: string) => $(`meta[property="og:${prop}"]`).attr('content') ?? null
-      const tw          = (name: string) => $(`meta[name="twitter:${name}"]`).attr('content') ?? null
-
-      const youtubeId   = extractYoutubeId(url)
-      const isYoutube   = youtubeId !== null
+      const html = new TextDecoder().decode(buffer)
+      const $    = cheerio.load(html)
+      const og   = (prop: string) => $(`meta[property="og:${prop}"]`).attr('content') ?? null
+      const tw   = (name: string) => $(`meta[name="twitter:${name}"]`).attr('content') ?? null
 
       let domain: string | null = null
       try { domain = new URL(url).hostname.replace(/^www\./, '') } catch { /* ignore */ }
 
-      const imageUrl = og('image') ?? tw('image') ?? null
-      const finalImage = isYoutube && !imageUrl
-        ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`
-        : imageUrl
-
       return reply.send({
-        ok:   true,
+        ok:           true,
         url,
-        title:         og('title')       ?? tw('title')       ?? ($('title').first().text().trim() || null),
-        description:   og('description') ?? tw('description') ?? $('meta[name="description"]').attr('content') ?? null,
-        image_url:     finalImage,
-        site_name:     og('site_name')   ?? domain,
-        canonical_url: og('url')         ?? url,
-        is_youtube:    isYoutube,
-        youtube_id:    youtubeId,
+        title:        og('title')       ?? tw('title')       ?? ($('title').first().text().trim() || null),
+        description:  og('description') ?? tw('description') ?? $('meta[name="description"]').attr('content') ?? null,
+        image_url:    og('image')       ?? tw('image')       ?? null,
+        site_name:    og('site_name')   ?? domain,
+        canonical_url: og('url')        ?? url,
+        is_youtube:   false,
+        youtube_id:   null,
       })
     } catch {
       return reply.send({ ok: false })

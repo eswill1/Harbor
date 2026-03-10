@@ -346,7 +346,7 @@ export default async function deckRoutes(app: FastifyInstance) {
        JOIN users u ON u.id = c.author_id
        JOIN follows f ON f.followee_id = u.id
        WHERE f.follower_id = $1
-         AND c.content_type = 'post'
+         AND c.content_type IN ('post', 'article')
          AND c.body IS NOT NULL
        ORDER BY c.created_at DESC
        LIMIT $2`,
@@ -359,7 +359,7 @@ export default async function deckRoutes(app: FastifyInstance) {
               u.id AS author_id, u.display_name, u.handle
        FROM content c
        JOIN users u ON u.id = c.author_id
-       WHERE c.content_type = 'post'
+       WHERE c.content_type IN ('post', 'article')
          AND c.body IS NOT NULL
          AND c.author_id != $1
          AND c.author_id NOT IN (
