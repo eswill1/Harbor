@@ -263,8 +263,35 @@ export default function AdminDashboard() {
       <SectionHeading>Moderation Queue</SectionHeading>
       <div className="rounded-xl overflow-hidden"
            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-        <MetaRow label="Pending reports"  value={s.moderation.pending_reports} />
-        <MetaRow label="Pending appeals"  value={s.moderation.pending_appeals} />
+        <div className="flex items-center justify-between py-3 px-4"
+             style={{ borderBottom: '1px solid var(--border)' }}>
+          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Pending reports</span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium tabular-nums"
+                  style={{ color: s.moderation.pending_reports > 0 ? 'var(--accent-caution)' : 'var(--text-primary)' }}>
+              {s.moderation.pending_reports}
+            </span>
+            <a href="/admin/reports"
+               className="text-xs font-medium"
+               style={{ color: 'var(--accent-primary)' }}>
+              Review →
+            </a>
+          </div>
+        </div>
+        <div className="flex items-center justify-between py-3 px-4">
+          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Pending appeals</span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium tabular-nums"
+                  style={{ color: s.moderation.pending_appeals > 0 ? 'var(--accent-caution)' : 'var(--text-primary)' }}>
+              {s.moderation.pending_appeals}
+            </span>
+            <a href="/admin/appeals"
+               className="text-xs font-medium"
+               style={{ color: 'var(--accent-primary)' }}>
+              Review →
+            </a>
+          </div>
+        </div>
       </div>
 
     </div>
