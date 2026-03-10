@@ -1,5 +1,5 @@
 # Harbor Implementation Plan
-### Version 1.2 — Aligned with Constitution v0.2 (includes Perspective §11), Design Bible v1.2, Metrics Standard, and Ranking Spec
+### Version 1.3 — Updated 2026-03-10: Phase 2 progress (notifications, metrics dashboard, admin moderation tools added)
 
 ---
 
@@ -679,7 +679,7 @@ The single narrow exception: a user's `framing_preference` from `perspective_use
 #### Deliverables:
 - [x] Regret Rate prompt (small rotating cohort, 15% of sessions — feeds Phase 3 ML training)
 - [x] Automatic rollback triggers (BullMQ hourly job — RR > 10% over 24h window flips config version)
-- [ ] Rich link previews (OG scraping, link_previews table, LinkPreviewCard component — prerequisite for Perspective)
+- [x] Rich link previews (OG scraping, link_previews table, LinkPreviewCard component — prerequisite for Perspective)
   - URL detection at post creation → async BullMQ scrape job
   - `link_previews` table: title, description, image_url, site_name, canonical_url, is_youtube, youtube_id
   - YouTube special case: thumbnail from img.youtube.com, no API key
@@ -687,10 +687,23 @@ The single narrow exception: a user's `framing_preference` from `perspective_use
   - Deck + feed API JOIN link_previews into card response
   - LinkPreviewCard component (mobile + web): OG image, site name, title, description
   - Composer live preview (800ms debounce, dismissable)
-- [ ] Notification system (batched, calm, `--accent-primary` badges — follow, reply, shelf save)
-- [ ] Mood Delta prompt (opt-in cohort)
-- [ ] Daily metrics dashboard (SSR, RR, AEI, dogpile rate, moderation queue — admin-facing)
-- [ ] Signal editing UI (full "Why this?" panel with editable signals)
+- [x] Notification system (calm, `--accent-primary` dot only — no counts; follow + shelf_save; reply deferred to Phase 3)
+  - `notifications` table with dedup unique indexes (re-follow/re-save bumps `created_at`, resets `read_at`)
+  - `GET /api/notifications`, `POST /api/notifications/read`; `unread_notifications` count on `/api/users/me`
+  - Mobile: notifications screen, unread dot on Profile tab, Notifications nav row in profile
+  - Web: `/notifications` page, dot on Profile nav item
+- [x] Daily metrics dashboard (SSR, RR, activity, moderation queue — admin-facing, web only)
+  - `GET /api/admin/metrics/summary`: SSR 24h/7d, RR over config window, session/post/user counts, pending reports + appeals
+  - Web `/admin` page: north star (SSR + threshold), safety (RR + rollback history), activity grid, moderation queue counts
+  - Auto-refreshes every 60s; admin-gated both in API (JWT role check) and UI
+  - `/api/users/me` now returns `role` from JWT
+- [ ] Admin moderation tools — report triage + appeal adjudication (admin-facing, web only)
+  - Reports queue: list pending `user_reports` with reporter, target content/user, reason; actions: dismiss, mark reviewed, escalate to enforcement
+  - Appeals queue: list pending `moderation_appeals` with original action, user statement; actions: uphold (keep action, send `appeal_outcome` notice) or overturn (reverse action effect, send `appeal_outcome` notice with resolution note)
+  - Enforcement action form (escalation path from report): action type, reason, policy section, severity, duration, generates `moderation_action` + `moderation_notice`
+  - All actions write full audit trail; no soft deletes
+- [ ] Mood Delta prompt (opt-in cohort, `mood_delta` column already in `sessions` table)
+- [ ] Signal editing UI (full "Why this?" panel with editable signals — requires signals table, Phase 2 prerequisite for Phase 3 ML)
 - [ ] Creator analytics dashboard (save rate, helpful rate, satisfaction contribution — not follower counts)
 - [ ] Relationship strength scoring (improves friends bucket quality)
 - [ ] Serendipity budget (per-user configurable)
@@ -700,6 +713,8 @@ The single narrow exception: a user's `framing_preference` from `perspective_use
 #### Success metrics:
 - Regret rate < 10% (first measurement)
 - Notification open rate > 30% (calm notifications actually get read)
+- Report median time-to-action < 48h (requires admin moderation tools)
+- Appeal overturn rate tracked and visible (requires admin moderation tools)
 - Creator analytics adoption > 50% of active creators
 - Daily metrics dashboard live and reviewed weekly
 - Zero ranking changes shipped without a completed RFC
@@ -821,10 +836,26 @@ GET    /api/perspective/:contentId            — Perspective panel data for a n
        — framing_direction per dot: only returned when requesting user has civic_opted_in = true
 GET    /api/perspective/outlets/:domain       — single outlet lookup (for link-sharing preview)
 
-POST   /api/content/:id/report         — report content
+POST   /api/moderation/reports          — submit a user report (content or account)
 GET    /api/moderation/notices          — user's enforcement notices (author view)
 POST   /api/moderation/appeals          — submit appeal
 GET    /api/moderation/appeals/:id      — appeal status
+
+GET    /api/notifications               — user's social notifications (follow, shelf_save) — ✓ live
+POST   /api/notifications/read          — mark all notifications read — ✓ live
+
+GET    /api/admin/ranking-config        — active ranking config + version — ✓ live
+GET    /api/admin/ranking-config/history — all config versions — ✓ live
+GET    /api/admin/ranking-rfcs          — all RFCs — ✓ live
+POST   /api/admin/ranking-rfcs          — create RFC draft — ✓ live
+GET    /api/admin/metrics/regret        — RR over rolling window — ✓ live
+GET    /api/admin/metrics/rollback-events — auto-rollback log — ✓ live
+GET    /api/admin/metrics/summary       — full dashboard payload (SSR, RR, activity, moderation queue) — ✓ live
+GET    /api/admin/moderation/reports    — pending reports queue (Phase 2)
+PATCH  /api/admin/moderation/reports/:id — dismiss / mark-reviewed / escalate (Phase 2)
+GET    /api/admin/moderation/appeals    — pending appeals queue (Phase 2)
+PATCH  /api/admin/moderation/appeals/:id — uphold / overturn + resolution note (Phase 2)
+POST   /api/admin/moderation/actions    — issue enforcement action from escalation (Phase 2)
 
 GET    /api/ranking/rfcs                — public RFC list
 GET    /api/ranking/rfcs/:id            — individual RFC detail
