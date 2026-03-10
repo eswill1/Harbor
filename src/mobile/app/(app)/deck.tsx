@@ -521,9 +521,17 @@ export default function DeckScreen() {
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
 
-      {/* ── Progress bar ── */}
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+      {/* ── Header: close + progress bar ── */}
+      <View style={styles.deckHeader}>
+        <Pressable
+          style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.5 }]}
+          onPress={handleChangeIntent}
+        >
+          <X size={20} color={theme.textSecondary} weight="bold" />
+        </Pressable>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+        </View>
       </View>
 
       {/* ── Card ── */}
@@ -635,14 +643,32 @@ const makeStyles = (c: typeof colors.light) => StyleSheet.create({
     backgroundColor: c.bgBase,
   },
 
+  // Header
+  deckHeader: {
+    flexDirection: 'row',
+    alignItems:    'center',
+    paddingHorizontal: space[3],
+    paddingVertical:   space[2],
+    gap:           space[2],
+  },
+  closeBtn: {
+    width:          32,
+    height:         32,
+    alignItems:     'center',
+    justifyContent: 'center',
+  },
+
   // Progress
   progressTrack: {
+    flex:            1,
     height:          3,
     backgroundColor: c.border,
+    borderRadius:    2,
   },
   progressFill: {
     height:          3,
     backgroundColor: c.accentPrimary,
+    borderRadius:    2,
   },
 
   // Card scroll
