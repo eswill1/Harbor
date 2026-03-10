@@ -79,6 +79,8 @@ export const api = {
             request<T>('POST', path, { body, token }),
   put:    <T>(path: string, body: unknown, token?: string) =>
             request<T>('PUT', path, { body, token }),
+  patch:  <T>(path: string, body: unknown, token?: string) =>
+            request<T>('PATCH', path, { body, token }),
   delete: <T>(path: string, token?: string) =>
             request<T>('DELETE', path, { token }),
 }
@@ -313,12 +315,53 @@ export interface RollbackEvent {
   note:           string | null
 }
 
+export interface AdminReport {
+  id:         string
+  reason:     string
+  detail:     string | null
+  status:     string
+  created_at: string
+  reporter:   { id: string; handle: string; display_name: string }
+  content:    { id: string; body: string | null; author: { id: string | null; handle: string | null } } | null
+  reported_user: { id: string; handle: string; display_name: string } | null
+}
+
+export interface AdminAppeal {
+  id:           string
+  submitted_at: string
+  status:       string
+  user:         { id: string; handle: string; display_name: string }
+  action:       { id: string; action_type: string; reason: string }
+  notice:       {
+    id:               string
+    notice_type:      string | null
+    plain_summary:    string | null
+    affected_excerpt: string | null
+    policy_section:   string | null
+  } | null
+}
+
 export const adminApi = {
   summary: (token: string) =>
     api.get<AdminSummary>('/api/admin/metrics/summary', token),
 
   rollbackEvents: (token: string) =>
     api.get<RollbackEvent[]>('/api/admin/metrics/rollback-events', token),
+
+  reports: (token: string, status = 'pending') =>
+    api.get<AdminReport[]>(`/api/admin/moderation/reports?status=${status}`, token),
+
+  patchReport: (id: string, action: 'dismiss' | 'reviewed', token: string) =>
+    api.patch<{ ok: boolean; status: string }>(`/api/admin/moderation/reports/${id}`, { action }, token),
+
+  actionReport: (id: string, body: Record<string, unknown>, token: string) =>
+    api.post<{ ok: boolean; action_id: string }>(`/api/admin/moderation/reports/${id}/action`, body, token),
+
+  appeals: (token: string) =>
+    api.get<AdminAppeal[]>('/api/admin/moderation/appeals', token),
+
+  patchAppeal: (id: string, decision: 'uphold' | 'overturn', resolution_note: string | undefined, token: string) =>
+    api.patch<{ ok: boolean; status: string }>(`/api/admin/moderation/appeals/${id}`, { decision, resolution_note }, token),
 }
 
 export const usersApi = {
