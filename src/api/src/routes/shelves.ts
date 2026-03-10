@@ -192,12 +192,30 @@ export default async function shelvesRoutes(app: FastifyInstance) {
       return reply.notFound("Content not found")
     }
 
-    await app.db.query(
+    const { rowCount } = await app.db.query(
       `INSERT INTO saved_items (user_id, shelf_id, content_id)
        VALUES ($1, $2, $3)
        ON CONFLICT DO NOTHING`,
       [userId, id, content_id],
     )
+
+    // Notify the content author (skip if saving own content or duplicate save)
+    if (rowCount && rowCount > 0) {
+      const authorResult = await app.db.query<{ author_id: string }>(
+        'SELECT author_id FROM content WHERE id = $1',
+        [content_id],
+      )
+      const authorId = authorResult.rows[0]?.author_id
+      if (authorId && authorId !== userId) {
+        await app.db.query(
+          `INSERT INTO notifications (user_id, type, actor_id, content_id)
+           VALUES ($1, 'shelf_save', $2, $3)
+           ON CONFLICT (user_id, actor_id, content_id) WHERE type = 'shelf_save'
+           DO UPDATE SET created_at = NOW(), read_at = NULL`,
+          [authorId, userId, content_id],
+        ).catch(() => {})
+      }
+    }
 
     return reply.send({ ok: true })
   })

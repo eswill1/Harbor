@@ -35,11 +35,12 @@ export default async function userRoutes(app: FastifyInstance) {
 
     const user = userResult.rows[0]
 
-    const countsResult = await app.db.query<ProfileCounts>(
+    const countsResult = await app.db.query<ProfileCounts & { unread_notifications: string }>(
       `SELECT
          (SELECT COUNT(*) FROM follows WHERE followee_id = $1) AS follower_count,
          (SELECT COUNT(*) FROM follows WHERE follower_id = $1) AS following_count,
-         (SELECT COUNT(*) FROM content WHERE author_id = $1 AND content_type = 'post') AS post_count`,
+         (SELECT COUNT(*) FROM content WHERE author_id = $1 AND content_type IN ('post','article')) AS post_count,
+         (SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND read_at IS NULL) AS unread_notifications`,
       [userId],
     )
 
@@ -49,9 +50,10 @@ export default async function userRoutes(app: FastifyInstance) {
       id:             user.id,
       handle:         user.handle,
       display_name:   user.display_name,
-      follower_count:  Number(counts.follower_count),
-      following_count: Number(counts.following_count),
-      post_count:      Number(counts.post_count),
+      follower_count:       Number(counts.follower_count),
+      following_count:      Number(counts.following_count),
+      post_count:           Number(counts.post_count),
+      unread_notifications: Number(counts.unread_notifications),
     })
   })
 
@@ -106,12 +108,23 @@ export default async function userRoutes(app: FastifyInstance) {
       return reply.badRequest('Cannot follow yourself')
     }
 
-    await app.db.query(
+    const { rowCount } = await app.db.query(
       `INSERT INTO follows (follower_id, followee_id)
        VALUES ($1, $2)
        ON CONFLICT DO NOTHING`,
       [userId, id],
     )
+
+    // Notify the followed user (only on a new follow, not a no-op re-follow)
+    if (rowCount && rowCount > 0) {
+      await app.db.query(
+        `INSERT INTO notifications (user_id, type, actor_id)
+         VALUES ($1, 'follow', $2)
+         ON CONFLICT (user_id, actor_id) WHERE type = 'follow'
+         DO UPDATE SET created_at = NOW(), read_at = NULL`,
+        [id, userId],
+      ).catch(() => {}) // non-critical — don't fail the follow if notification fails
+    }
 
     return reply.send({ ok: true })
   })

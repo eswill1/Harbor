@@ -20,6 +20,7 @@ export default function AppLayout() {
       <Stack.Screen name="notices" />
       <Stack.Screen name="notice/[id]" />
       <Stack.Screen name="notice/[id]/appeal" />
+      <Stack.Screen name="notifications" />
     </Stack>
   )
 }

@@ -1,12 +1,13 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { usersApi } from '../../../lib/api'
+import { usersApi, authApi } from '../../../lib/api'
 import { useAuthStore } from '../../../store/auth'
 import { useThemeStore, type ThemeMode } from '../../../store/theme'
-import { authApi } from '../../../lib/api'
+import { useNotificationStore } from '../../../store/notifications'
 
 const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -17,13 +18,20 @@ const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
 export default function ProfilePage() {
   const router = useRouter()
   const { user, accessToken, clearAuth } = useAuthStore()
-  const { mode, setMode } = useThemeStore()
+  const { mode, setMode }               = useThemeStore()
+  const setUnreadCount                  = useNotificationStore((s) => s.setUnreadCount)
 
   const { data: profile } = useQuery({
     queryKey: ['me'],
     queryFn:  () => usersApi.me(accessToken!),
     enabled:  !!accessToken,
   })
+
+  useEffect(() => {
+    if (profile?.unread_notifications !== undefined) {
+      setUnreadCount(profile.unread_notifications)
+    }
+  }, [profile?.unread_notifications])
 
   async function handleLogout() {
     if (accessToken) {
@@ -106,8 +114,9 @@ export default function ProfilePage() {
       <div className="rounded-xl overflow-hidden mb-4"
            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
         {([
-          { href: '/notices', label: 'Notices', icon: '⚠' },
-          { href: '/compose', label: 'Write a post', icon: '✏' },
+          { href: '/notifications', label: 'Notifications', icon: '🔔' },
+          { href: '/notices',       label: 'Notices',       icon: '⚠' },
+          { href: '/compose',       label: 'Write a post',  icon: '✏' },
         ] as const).map(({ href, label, icon }, i, arr) => (
           <Link key={href} href={href}
                 className="flex items-center gap-3 px-4 py-3.5 transition-colors"

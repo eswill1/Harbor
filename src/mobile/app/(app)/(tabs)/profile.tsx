@@ -4,9 +4,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { User, SignOut, Bell, CaretRight, Moon } from 'phosphor-react-native'
 import { router } from 'expo-router'
 
-import { authApi, moderationApi } from '../../../lib/api'
+import { authApi, moderationApi, usersApi } from '../../../lib/api'
 import { useAuthStore } from '../../../store/auth'
 import { useThemeStore, type ThemePreference } from '../../../store/theme'
+import { useNotificationStore } from '../../../store/notifications'
 import { colors, fontSize, fontFamily, space, radius } from '../../../constants/tokens'
 import { useTheme } from '../../../hooks/useTheme'
 
@@ -20,21 +21,23 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets()
   const { user, accessToken, clearAuth } = useAuthStore()
   const { preference, setPreference } = useThemeStore()
+  const { setUnreadCount }            = useNotificationStore()
+  const notifUnread                   = useNotificationStore((s) => s.unreadCount)
   const theme  = useTheme()
   const styles = useMemo(() => makeStyles(theme), [theme])
 
-  const [unreadCount, setUnreadCount] = useState(0)
+  const [noticeCount, setNoticeCount] = useState(0)
 
   useEffect(() => {
     if (!accessToken) return
+    // Fetch moderation notice count
     moderationApi.getNotices(accessToken, 0)
-      .then((notices) => {
-        const count = notices.filter((n) => n.read_at === null).length
-        setUnreadCount(count)
-      })
-      .catch(() => {
-        // Non-critical — ignore silently
-      })
+      .then((notices) => setNoticeCount(notices.filter((n) => n.read_at === null).length))
+      .catch(() => {})
+    // Fetch social notification unread count
+    usersApi.me(accessToken)
+      .then((profile) => setUnreadCount(profile.unread_notifications ?? 0))
+      .catch(() => {})
   }, [accessToken])
 
   const handleLogout = () => {
@@ -75,15 +78,31 @@ export default function ProfileScreen() {
 
       {/* ── Nav rows ── */}
       <View style={styles.navSection}>
+        {/* Notifications row */}
+        <Pressable
+          style={({ pressed }) => [styles.navRow, pressed && { opacity: 0.7 }]}
+          onPress={() => router.push('/(app)/notifications')}
+        >
+          <Bell size={20} color={theme.textSecondary} weight="regular" />
+          <Text style={styles.navLabel}>{"Notifications"}</Text>
+          {notifUnread > 0 && (
+            <View style={[styles.dot, { backgroundColor: theme.accentPrimary }]} />
+          )}
+          <CaretRight size={16} color={theme.textMuted} weight="regular" style={styles.navChevron} />
+        </Pressable>
+
+        <View style={styles.navRowDivider} />
+
+        {/* Notices (moderation) row */}
         <Pressable
           style={({ pressed }) => [styles.navRow, pressed && { opacity: 0.7 }]}
           onPress={() => router.push('/(app)/notices')}
         >
           <Bell size={20} color={theme.textSecondary} weight="regular" />
           <Text style={styles.navLabel}>{"Notices"}</Text>
-          {unreadCount > 0 && (
+          {noticeCount > 0 && (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : String(unreadCount)}</Text>
+              <Text style={styles.badgeText}>{noticeCount > 99 ? '99+' : String(noticeCount)}</Text>
             </View>
           )}
           <CaretRight size={16} color={theme.textMuted} weight="regular" style={styles.navChevron} />
@@ -194,6 +213,12 @@ const makeStyles = (c: typeof colors.light) => StyleSheet.create({
   },
   navChevron: {
     marginLeft: 'auto',
+  },
+  dot: {
+    width:        8,
+    height:       8,
+    borderRadius: 4,
+    flexShrink:   0,
   },
   badge: {
     minWidth:          20,
