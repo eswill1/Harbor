@@ -639,7 +639,7 @@ The single narrow exception: a user's `framing_preference` from `perspective_use
 - [x] Ranking RFC tracking (internal tooling — RFC-0001 seeded, admin endpoints live)
 - [x] Versioned ranking configs (for rollback — ranking_config_versions table, is_active flag, deck engine reads from DB)
 - [x] Dark mode (system + in-app System/Light/Dark toggle, persisted)
-- [ ] React Native app (iOS + Android) _(iOS: complete; Android: pending)_
+- [x] React Native app (iOS + Android) _(tested on device: iOS + Android tablet)_
 - [x] Next.js web app _(auth, intent selector, deck, baseline feed, shelves, compose, profile, user profiles, notices + appeals)_
 
 #### Success metrics:
@@ -649,6 +649,8 @@ The single narrow exception: a user's `framing_preference` from `perspective_use
 - Notice coverage rate > 95% (every reach-impacting action generates a notice)
 
 #### Team: 3–5 engineers, 1 designer, 1 PM
+
+**✓ Phase 1 complete — 2026-03-10**
 
 ---
 
